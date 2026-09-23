@@ -89,6 +89,11 @@
 
   .enquiries a {
     color: #C8F3FA;
+    transition: color 300ms ease;
+  }
+
+  .enquiries a:hover {
+    color: #FFD16B;
   }
 
   .nav-link {
@@ -101,7 +106,7 @@
     flex: none;
   }
 
-  .header-left { grid-area: header-left; justify-self: start; align-self: start; }
+  .header-left { grid-area: header-left; justify-self: start; align-self: start; font-size: 2.375rem; }
 
   .header-right {
     grid-area: header-right;
@@ -124,29 +129,6 @@
     align-self: end;
     text-align: right;
     pointer-events: auto;
-  }
-
-  .email-wrap {
-    position: relative;
-    display: inline-block;
-  }
-
-  .email-motif {
-    position: absolute;
-    left: 50%;
-    bottom: 100%;
-    transform: translateX(-50%);
-    margin-bottom: -2px;
-    width: 34px;
-    height: auto;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 300ms ease;
-  }
-
-  .email-wrap:hover .email-motif {
-    opacity: 1;
-    transition: opacity 100ms ease;
   }
 
   @media (max-width: 640px) {
@@ -212,23 +194,13 @@
   </div>
   <div class="layout">
     <div class="eyebrow header-left">We are Studio Signal</div>
-    <div class="eyebrow header-right">Specialist UK brand &amp; web studio</div>
+    <div class="eyebrow header-right">Branding + web that lights the way</div>
     <div class="footer-left">
-      <a class="nav-link" href="#" target="_blank" rel="noopener">Insta<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
-      <a class="nav-link" href="#" target="_blank" rel="noopener">LinkedIn<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
+      <a class="nav-link" href="https://www.instagram.com/studiosignalco/" target="_blank" rel="noopener noreferrer">Insta<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
+      <a class="nav-link" href="https://www.linkedin.com/company/studiosignalco" target="_blank" rel="noopener noreferrer">LinkedIn<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
     </div>
     <div class="enquiries footer-right">
-      Enquiries: <span class="email-wrap"><svg class="email-motif" width="50" height="29" viewBox="0 0 50 29" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M24.2636 24.5943L2.20656 14.2852L4.13301 10.9684L24.2636 24.5943Z" fill="#FFD16B"/>
-        <path d="M24.2652 24.5951L7.07787 7.48902L10.0397 5.02565L24.2652 24.5951Z" fill="#FFD16B"/>
-        <path d="M24.2632 24.595L14.0167 2.75554L17.6617 1.44547L24.2632 24.595Z" fill="#FFD16B"/>
-        <path d="M24.2648 24.5941L22.1955 0.655979L26.0808 0.654614L24.2648 24.5941Z" fill="#FFD16B"/>
-        <path d="M24.2656 24.5945L30.6231 1.44331L34.2807 2.75389L24.2656 24.5945Z" fill="#FFD16B"/>
-        <path d="M24.2674 24.5945L38.2859 5.02406L41.2742 7.48547L24.2674 24.5945Z" fill="#FFD16B"/>
-        <path d="M24.2665 24.5957L44.2545 10.9647L46.2151 14.2824L24.2665 24.5957Z" fill="#FFD16B"/>
-        <path d="M24.265 24.5942L47.8119 18.5495L48.5059 22.321L24.265 24.5942Z" fill="#FFD16B"/>
-        <path d="M24.2645 24.5962L0.654002 18.5554L-0.000678913 22.3272L24.2645 24.5962Z" fill="#FFD16B"/>
-      </svg><a href="mailto:hi@studiosignal.co.uk">hi@studiosignal.co.uk</a></span>
+      Enquiries: <a href="mailto:hi@studiosignal.co.uk">hi@studiosignal.co.uk</a>
     </div>
   </div>
 </section>
@@ -258,6 +230,8 @@
   const REVEAL_CORE_FRACTION_MOBILE = 0.16; // slightly softer base falloff on mobile
   const REVEAL_CORE_BLOOM_MOBILE = 0.16; // extra core width while the beam swells on movement
   const POINTER_EASE = 0.14;         // 0..1, how quickly the glow follows the mouse/finger
+  const LEAVE_HOLD_MS = 300;         // pause at exit before returning to the logo centre
+  const LEAVE_CENTER_ARRIVE_PX = 8;  // end the leave sequence when settled on the logo centre
   const GROWTH_ON_MOVE = 0.15;       // spotlight grows up to 15% while actively moving (desktop)
   const GROWTH_ON_MOVE_MOBILE = 0.36; // mobile tilt: speed-linked expansion
   const MAX_RADIUS_SCALE_MOBILE = 1.48; // ceiling on mobile beam scale (base + growth)
@@ -294,12 +268,18 @@
   let targetX = null, targetY = null;
   let currentX = null, currentY = null;
   let pointerActive = false;
+  let desktopLeaveAnimating = false;
+  let desktopLeavePhase = null; // 'delay' | 'toCenter'
+  let desktopLeaveDelayUntil = 0;
+  let desktopLeaveHoldX = 0;
+  let desktopLeaveHoldY = 0;
   let fadeOut = 0; // 1 = fully visible glow, 0 = pointer has left
   let revealAlpha = 0; // eased reveal strength, follows fadeOut
   let moveSpeed = 0; // decays each frame, spikes on pointer movement
   let radiusScale = 1; // eased 1..1+GROWTH_ON_MOVE, driven by moveSpeed
   let revealRadius = REVEAL_RADIUS_MIN; // clamp(MIN, width * VW, MAX), recalculated on resize
   let motionEnabled = false;
+  let touchPanEnabled = false; // thumb drag when motion permission is denied
   let motionActivationPending = false;
   let motionCalibrating = false;
   let motionCalibrationBuffer = [];
@@ -334,14 +314,18 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     revealRadius = computeRevealRadius(width);
     buildLogoLayer();
-    if (isTouchDevice && !motionEnabled) {
+    if (isTouchDevice && !motionEnabled && !touchPanEnabled) {
       initMobileSpotlight();
       syncMotionPromptOverlay();
     }
   }
 
+  function mobilePanActive() {
+    return isTouchDevice && width < MOBILE_BREAKPOINT && (motionEnabled || touchPanEnabled);
+  }
+
   function syncMotionPromptOverlay() {
-    if (!motionPromptBtn || motionEnabled) return;
+    if (!motionPromptBtn || motionEnabled || touchPanEnabled) return;
     const diameter = revealRadius * 2;
     motionPromptBtn.style.width = diameter + 'px';
     motionPromptBtn.style.height = diameter + 'px';
@@ -362,7 +346,7 @@
     if (!bgLogoLoaded || !width || !height) return;
 
     const isMobileLayout = width < MOBILE_BREAKPOINT;
-    const motionLayer = isMobileLayout && motionEnabled;
+    const motionLayer = isMobileLayout && (motionEnabled || touchPanEnabled);
     let logoW = isMobileLayout
       ? Math.min(Math.max(0, width - LOGO_INSET_MOBILE * 2), LOGO_MAX_WIDTH)
       : Math.min(width * LOGO_WIDTH_RATIO, LOGO_MAX_WIDTH);
@@ -408,7 +392,7 @@
   }
 
   function useLogoPanMode() {
-    return isTouchDevice && motionEnabled && width < MOBILE_BREAKPOINT;
+    return mobilePanActive();
   }
 
   function render() {
@@ -429,8 +413,29 @@
       currentY += (targetY - currentY) * pointerEase;
     }
 
+    if (desktopLeavePhase === 'delay') {
+      targetX = desktopLeaveHoldX;
+      targetY = desktopLeaveHoldY;
+      if (performance.now() >= desktopLeaveDelayUntil) {
+        desktopLeavePhase = 'toCenter';
+        targetX = centerX;
+        targetY = centerY;
+        if (currentX !== null && currentY !== null) {
+          moveSpeed = Math.max(moveSpeed, Math.hypot(centerX - currentX, centerY - currentY));
+        }
+      }
+    } else if (desktopLeavePhase === 'toCenter' && currentX !== null && currentY !== null) {
+      if (Math.hypot(centerX - currentX, centerY - currentY) <= LEAVE_CENTER_ARRIVE_PX) {
+        desktopLeavePhase = null;
+        desktopLeaveAnimating = false;
+        targetX = centerX;
+        targetY = centerY;
+        pointerActive = false;
+      }
+    }
+
     // fade the whole glow in/out as the pointer enters/leaves the hero
-    const fadeTarget = pointerActive ? 1 : 0;
+    const fadeTarget = (pointerActive || desktopLeaveAnimating) ? 1 : 0;
     fadeOut += (fadeTarget - fadeOut) * 0.09;
     revealAlpha += (fadeOut - revealAlpha) * 0.18;
 
@@ -441,7 +446,7 @@
       moveSpeed = Math.max(moveSpeed, Math.hypot(frameDx, frameDy));
       prevLogoPanX = logoPanCurrentX;
       prevLogoPanY = logoPanCurrentY;
-    } else if (isMobileLayout && motionEnabled && currentX !== null && prevRenderX !== null) {
+    } else if (isMobileLayout && mobilePanActive() && !useLogoPanMode() && currentX !== null && prevRenderX !== null) {
       const frameDx = currentX - prevRenderX;
       const frameDy = currentY - prevRenderY;
       moveSpeed = Math.max(moveSpeed, Math.hypot(frameDx, frameDy));
@@ -528,14 +533,43 @@
     pointerActive = true;
   }
 
+  function isDesktopPointerMode() {
+    return !isTouchDevice && width >= MOBILE_BREAKPOINT;
+  }
+
+  function cancelDesktopLeaveSequence() {
+    desktopLeavePhase = null;
+    desktopLeaveAnimating = false;
+    desktopLeaveDelayUntil = 0;
+  }
+
+  function startDesktopLeaveSequence() {
+    if (targetX === null || targetY === null) {
+      pointerActive = false;
+      return;
+    }
+    desktopLeaveHoldX = targetX;
+    desktopLeaveHoldY = targetY;
+    desktopLeavePhase = 'delay';
+    desktopLeaveDelayUntil = performance.now() + LEAVE_HOLD_MS;
+    desktopLeaveAnimating = true;
+    targetX = desktopLeaveHoldX;
+    targetY = desktopLeaveHoldY;
+  }
+
   function handlePointerMove(e) {
     if (isTouchDevice) return; // iOS/Android synthesize mousemove on tap — would spike bloom
+    cancelDesktopLeaveSequence();
     const rect = hero.getBoundingClientRect();
     updateTarget(e.clientX - rect.left, e.clientY - rect.top);
   }
 
   function handlePointerLeave() {
-    pointerActive = false;
+    if (!isDesktopPointerMode()) {
+      pointerActive = false;
+      return;
+    }
+    startDesktopLeaveSequence();
   }
 
   function isInteractiveTouchTarget(e) {
@@ -545,7 +579,7 @@
   }
 
   function showMotionPrompt() {
-    if (!motionPrompt || motionEnabled) return;
+    if (!motionPrompt || motionEnabled || touchPanEnabled) return;
     motionPrompt.hidden = false;
     syncMotionPromptOverlay();
   }
@@ -556,15 +590,26 @@
   }
 
   function handleTouchStart(e) {
-    if (isTouchDevice && !motionEnabled && motionRequiresUserGesture()) {
+    if (isInteractiveTouchTarget(e)) return;
+    if (touchPanEnabled && e.touches.length) {
+      const rect = hero.getBoundingClientRect();
+      const t = e.touches[0];
+      applyTouchPan(t.clientX - rect.left, t.clientY - rect.top);
+      return;
+    }
+    if (isTouchDevice && !motionEnabled && !touchPanEnabled && motionRequiresUserGesture()) {
       showMotionPrompt();
     }
-    if (isInteractiveTouchTarget(e)) return;
   }
 
   function handleTouchMove(e) {
     if (isInteractiveTouchTarget(e)) return;
     e.preventDefault();
+    if (touchPanEnabled && e.touches.length) {
+      const rect = hero.getBoundingClientRect();
+      const t = e.touches[0];
+      applyTouchPan(t.clientX - rect.left, t.clientY - rect.top);
+    }
   }
 
   function handleTouchEnd() {
@@ -648,6 +693,27 @@
     motionCalibrating = false;
     motionCalibrationBuffer = [];
     holdSpotlightAtCenter();
+  }
+
+  function applyTouchPan(localX, localY) {
+    if (!width || !height) return;
+    const maxDx = logoPanLimitX > 0 ? logoPanLimitX : width * (0.5 - MOTION_MARGIN);
+    const maxDy = logoPanLimitY > 0 ? logoPanLimitY : height * (0.5 - MOTION_MARGIN);
+    const rangeX = width * (0.5 - MOTION_MARGIN);
+    const rangeY = height * (0.5 - MOTION_MARGIN);
+    const normX = rangeX > 0 ? (localX - centerX) / rangeX : 0;
+    const normY = rangeY > 0 ? (localY - centerY) / rangeY : 0;
+    const panX = normX * maxDx * MOTION_PAN_GAIN_X;
+    const panY = normY * maxDy;
+    const pan = clampLogoPan(panX, panY);
+    updateLogoPan(pan.x, pan.y);
+  }
+
+  function enableTouchPanControl() {
+    touchPanEnabled = true;
+    buildLogoLayer();
+    initMobileSpotlight();
+    hideMotionPrompt();
   }
 
   function applyMotionTilt(gamma, beta) {
@@ -818,15 +884,11 @@
       }
       if (granted) {
         startMotionListeners();
-      } else if (motionPromptBtn) {
-        motionPromptBtn.setAttribute('aria-label', 'Motion blocked — tap to retry');
-        motionPromptBtn.disabled = false;
+      } else {
+        enableTouchPanControl();
       }
     } catch (_) {
-      if (motionPromptBtn) {
-        motionPromptBtn.setAttribute('aria-label', 'Motion unavailable — tap to retry');
-        motionPromptBtn.disabled = false;
-      }
+      enableTouchPanControl();
     } finally {
       motionActivationPending = false;
     }
