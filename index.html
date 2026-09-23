@@ -276,7 +276,8 @@
   const MOTION_GAMMA_RANGE = 21.5;   // degrees for full horizontal travel (+30% sensitivity vs 28)
   const MOTION_BETA_RANGE = 16.9;    // degrees for full vertical travel (+30% sensitivity vs 22)
   const MOTION_CALIBRATION_SAMPLES = 10; // average first samples so mixed sensor frames do not yank the beam
-  const MOTION_LOGO_ZOOM_MOBILE = 1.85; // oversized logo so panning does not reveal empty canvas
+  const MOTION_LOGO_ZOOM_MOBILE = 1.65; // headroom for pan without cropping the mark off-layer
+  const LOGO_MOTION_ANCHOR_Y = 168.5 / 287; // viewBox Y below the STUDIO/SIGNAL row gap (not geometric centre)
   const POINTER_EASE_MOTION = 0.2;   // how quickly the beam follows tilt
   const isTouchDevice = matchMedia('(hover: none)').matches; // mobile: centre beam + device tilt
   const isIosDevice = (() => {
@@ -320,6 +321,10 @@
   let logoPanCurrentY = 0;
   let prevLogoPanX = null;
   let prevLogoPanY = null;
+  let logoLayerPadX = 0;
+  let logoLayerPadY = 0;
+  let logoPanLimitX = 0;
+  let logoPanLimitY = 0;
 
   function resize() {
     const rect = hero.getBoundingClientRect();
@@ -353,21 +358,49 @@
   function buildLogoLayer() {
     if (!bgLogoLoaded || !width || !height) return;
 
-    logoLayer = document.createElement('canvas');
-    logoLayer.width = canvas.width;
-    logoLayer.height = canvas.height;
-    const lctx = logoLayer.getContext('2d');
-    lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
     const isMobileLayout = width < MOBILE_BREAKPOINT;
+    const motionLayer = isMobileLayout && motionEnabled;
     let logoW = isMobileLayout
       ? Math.min(Math.max(0, width - LOGO_INSET_MOBILE * 2), LOGO_MAX_WIDTH)
       : Math.min(width * LOGO_WIDTH_RATIO, LOGO_MAX_WIDTH);
-    if (isMobileLayout && motionEnabled) {
+    if (motionLayer) {
       logoW *= MOTION_LOGO_ZOOM_MOBILE;
     }
-    const logoH = logoW * (bgLogoImg.naturalHeight / bgLogoImg.naturalWidth);
-    lctx.drawImage(bgLogoImg, centerX - logoW / 2, centerY - logoH / 2, logoW, logoH);
+    const aspect = bgLogoImg.naturalHeight / bgLogoImg.naturalWidth;
+    const logoH = logoW * aspect;
+
+    logoLayerPadX = 0;
+    logoLayerPadY = 0;
+    let layerWidth = width;
+    let layerHeight = height;
+
+    if (motionLayer) {
+      const tiltPanX = width * (0.5 - MOTION_MARGIN);
+      const tiltPanY = height * (0.5 - MOTION_MARGIN);
+      logoLayerPadX = Math.ceil(Math.max(tiltPanX, (logoW - width) / 2 + 12));
+      logoLayerPadY = Math.ceil(Math.max(tiltPanY, (logoH - height) / 2 + 12));
+      layerWidth = width + logoLayerPadX * 2;
+      layerHeight = height + logoLayerPadY * 2;
+      logoPanLimitX = Math.min(tiltPanX, logoLayerPadX);
+      logoPanLimitY = Math.min(tiltPanY, logoLayerPadY);
+    } else {
+      logoPanLimitX = 0;
+      logoPanLimitY = 0;
+    }
+
+    logoLayer = document.createElement('canvas');
+    logoLayer.width = Math.round(layerWidth * dpr);
+    logoLayer.height = Math.round(layerHeight * dpr);
+    const lctx = logoLayer.getContext('2d');
+    lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const focalX = logoLayerPadX + centerX;
+    const focalY = logoLayerPadY + centerY;
+    const drawX = focalX - logoW / 2;
+    const drawY = motionLayer
+      ? focalY - LOGO_MOTION_ANCHOR_Y * logoH
+      : focalY - logoH / 2;
+    lctx.drawImage(bgLogoImg, drawX, drawY, logoW, logoH);
   }
 
   function useLogoPanMode() {
@@ -438,9 +471,13 @@
     if (currentX !== null && revealAlpha > 0.002 && logoLayer) {
       ctx.save();
       ctx.globalAlpha = MAX_OPACITY * revealAlpha;
-      const logoDrawX = logoPanMode ? logoPanCurrentX : 0;
-      const logoDrawY = logoPanMode ? logoPanCurrentY : 0;
-      ctx.drawImage(logoLayer, logoDrawX, logoDrawY, width, height);
+      if (logoPanMode) {
+        const srcX = logoLayerPadX - logoPanCurrentX;
+        const srcY = logoLayerPadY - logoPanCurrentY;
+        ctx.drawImage(logoLayer, srcX, srcY, width, height, 0, 0, width, height);
+      } else {
+        ctx.drawImage(logoLayer, 0, 0, width, height);
+      }
 
       // soft-edged circular spotlight mask
       ctx.globalCompositeOperation = 'destination-in';
@@ -540,8 +577,8 @@
   }
 
   function clampLogoPan(panX, panY) {
-    const maxDx = width * (0.5 - MOTION_MARGIN);
-    const maxDy = height * (0.5 - MOTION_MARGIN);
+    const maxDx = logoPanLimitX || width * (0.5 - MOTION_MARGIN);
+    const maxDy = logoPanLimitY || height * (0.5 - MOTION_MARGIN);
     return {
       x: Math.min(maxDx, Math.max(-maxDx, panX)),
       y: Math.min(maxDy, Math.max(-maxDy, panY)),
