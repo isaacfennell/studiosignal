@@ -264,11 +264,14 @@
   const REVEAL_RADIUS_VW_MOBILE = 0.28; // mobile scales with viewport — avoids the desktop min blowing up the beam
   const REVEAL_RADIUS_MIN_MOBILE = 88;
   const REVEAL_RADIUS_MAX_MOBILE = 200;
-  const REVEAL_CORE_FRACTION = 0.14; // share of radius that stays fully opaque before falloff
+  const REVEAL_RADIUS_MOBILE_SCALE = 1.2; // default beam size on mobile (+20%)
+  const REVEAL_CORE_FRACTION = 0.14; // share of radius that stays fully opaque before falloff (desktop)
+  const REVEAL_CORE_FRACTION_MOBILE = 0.16; // slightly softer base falloff on mobile
+  const REVEAL_CORE_BLOOM_MOBILE = 0.35; // extra core width while the beam swells on movement
   const POINTER_EASE = 0.14;         // 0..1, how quickly the glow follows the mouse/finger
   const GROWTH_ON_MOVE = 0.15;       // spotlight grows up to 15% while actively moving (desktop)
-  const GROWTH_ON_MOVE_MOBILE = 0.45; // mobile tilt: stronger speed-linked expansion
-  const MAX_RADIUS_SCALE_MOBILE = 1.52; // ceiling on mobile beam scale (base + growth)
+  const GROWTH_ON_MOVE_MOBILE = 0.58; // mobile tilt: stronger speed-linked expansion
+  const MAX_RADIUS_SCALE_MOBILE = 1.72; // ceiling on mobile beam scale (base + growth)
   const SPEED_FOR_MAX_GROWTH = 35;   // px/move-event needed to hit full growth
   const SPEED_FOR_MAX_GROWTH_MOBILE = 9; // lower bar — tilt deltas are smaller per event
   const GRADIENT_STOPS = 16;         // samples along the spotlight's falloff curve — higher = smoother
@@ -349,10 +352,11 @@
 
   function computeRevealRadius(w) {
     if (w < MOBILE_BREAKPOINT) {
-      return Math.min(
+      const base = Math.min(
         REVEAL_RADIUS_MAX_MOBILE,
         Math.max(REVEAL_RADIUS_MIN_MOBILE, w * REVEAL_RADIUS_VW_MOBILE)
       );
+      return base * REVEAL_RADIUS_MOBILE_SCALE;
     }
     return Math.min(REVEAL_RADIUS_MAX, Math.max(REVEAL_RADIUS_MIN, w * REVEAL_RADIUS_VW));
   }
@@ -490,15 +494,19 @@
       const beamX = logoPanMode ? centerX : currentX;
       const beamY = logoPanMode ? centerY : currentY;
       const grad = ctx.createRadialGradient(beamX, beamY, 0, beamX, beamY, revealRadius * radiusScale);
+      const moveBloom = isMobileLayout ? Math.min(1, Math.max(0, radiusScale - 1) / GROWTH_ON_MOVE_MOBILE) : 0;
+      const coreFraction = isMobileLayout
+        ? Math.min(0.32, REVEAL_CORE_FRACTION_MOBILE + moveBloom * REVEAL_CORE_BLOOM_MOBILE)
+        : REVEAL_CORE_FRACTION;
       // sample a smooth cosine falloff (1 -> 0, easing at both ends) instead of a few
       // hand-picked stops, which read as visible rings where the slope kinked
       for (let i = 0; i <= GRADIENT_STOPS; i++) {
         const t = i / GRADIENT_STOPS;
         let alpha;
-        if (t <= REVEAL_CORE_FRACTION) {
+        if (t <= coreFraction) {
           alpha = 1;
         } else {
-          const u = (t - REVEAL_CORE_FRACTION) / (1 - REVEAL_CORE_FRACTION);
+          const u = (t - coreFraction) / (1 - coreFraction);
           alpha = 0.5 * (1 + Math.cos(Math.PI * u));
         }
         grad.addColorStop(t, `rgba(255,255,255,${alpha})`);
