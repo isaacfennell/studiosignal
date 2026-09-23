@@ -222,18 +222,11 @@
   const GROWTH_ON_MOVE = 0.15;       // spotlight grows up to 15% while actively moving
   const SPEED_FOR_MAX_GROWTH = 35;   // px/move-event needed to hit full growth
   const GRADIENT_STOPS = 16;         // samples along the spotlight's falloff curve — higher = smoother
-  const ROAM_MARGIN = 0.14;          // auto-search stays within this margin of the edges
-  const ROAM_DWELL_MIN = 2200;       // ms examining one area before moving on
-  const ROAM_DWELL_MAX = 3800;
-  const ROAM_TRAVEL_MIN = 2000;      // ms gliding to the next area
-  const ROAM_TRAVEL_MAX = 3200;
-  const ROAM_TREMOR = 3.5;           // px — constant hand-shake on the beam
-  const ROAM_SEARCH_RADIUS = 28;     // px — slow sweep while dwelling
-  const ROAM_TRAVEL_SWAY = 22;       // px — lateral sweep while travelling
-  const ROAM_TRAVEL_TREMOR = 6;      // extra shake while moving between spots
-  const POINTER_EASE_ROAM_DWELL = 0.11;
-  const POINTER_EASE_ROAM_TRAVEL = 0.24;
-  const isTouchDevice = matchMedia('(hover: none)').matches; // no cursor to follow — search automatically instead
+  const MOTION_MARGIN = 0.12;        // keep the beam off the viewport edges
+  const MOTION_GAMMA_RANGE = 28;     // degrees of left/right tilt for full horizontal travel
+  const MOTION_BETA_RANGE = 22;      // degrees of forward/back tilt for full vertical travel
+  const POINTER_EASE_MOTION = 0.2;   // how quickly the beam follows tilt
+  const isTouchDevice = matchMedia('(hover: none)').matches; // mobile: centre beam + device tilt
   let dpr = Math.min(window.devicePixelRatio || 1, 2);
   let width = 0, height = 0;
   let centerX = 0, centerY = 0;
@@ -253,16 +246,8 @@
   let moveSpeed = 0; // decays each frame, spikes on pointer movement
   let radiusScale = 1; // eased 1..1+GROWTH_ON_MOVE, driven by moveSpeed
   let revealRadius = REVEAL_RADIUS_MIN; // clamp(MIN, width * VW, MAX), recalculated on resize
-  let isUserTouching = false; // a finger is currently down — pause auto-search and follow it directly
-  let roamPhase = 'dwell'; // dwell | travel
-  let roamPhaseStart = 0;
-  let roamPhaseDuration = 0;
-  let roamAnchorX = 0;
-  let roamAnchorY = 0;
-  let roamTravelFromX = 0;
-  let roamTravelFromY = 0;
-  let roamNextX = 0;
-  let roamNextY = 0;
+  let motionEnabled = false;
+  let motionBaseline = null; // gamma/beta when calibrated — spotlight rests at screen centre
 
   function resize() {
     const rect = hero.getBoundingClientRect();
@@ -278,6 +263,9 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     revealRadius = computeRevealRadius(width);
     buildLogoLayer();
+    if (isTouchDevice && !motionEnabled) {
+      initMobileSpotlight();
+    }
   }
 
   function computeRevealRadius(w) {
@@ -310,16 +298,7 @@
   function render() {
     ctx.clearRect(0, 0, width, height);
 
-    if (isTouchDevice && !isUserTouching && width) {
-      updateRoam(performance.now());
-    }
-
-    let pointerEase = POINTER_EASE;
-    if (isUserTouching) {
-      pointerEase = 0.32;
-    } else if (isTouchDevice) {
-      pointerEase = roamPhase === 'travel' ? POINTER_EASE_ROAM_TRAVEL : POINTER_EASE_ROAM_DWELL;
-    }
+    const pointerEase = isTouchDevice ? POINTER_EASE_MOTION : POINTER_EASE;
 
     // ease the glow position toward the pointer for a gentle trailing feel
     if (targetX !== null) {
@@ -393,133 +372,91 @@
     return el !== null && hero.contains(el);
   }
 
-  function applyTouchPoint(e) {
-    if (!e.touches || !e.touches[0]) return;
-    isUserTouching = true;
-    const rect = hero.getBoundingClientRect();
-    updateTarget(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
-  }
-
   function handleTouchStart(e) {
     if (isInteractiveTouchTarget(e)) return;
-    applyTouchPoint(e);
+    if (isTouchDevice && !motionEnabled) {
+      enableDeviceMotion();
+    }
   }
 
   function handleTouchMove(e) {
     if (isInteractiveTouchTarget(e)) return;
     e.preventDefault();
-    applyTouchPoint(e);
   }
 
   function handleTouchEnd() {
-    isUserTouching = false;
-    if (isTouchDevice) {
-      resumeRoam();
-    } else {
+    if (!isTouchDevice) {
       pointerActive = false;
     }
   }
 
-  // --- auto-search (touch devices only) --------------------------------
-  // there's no cursor to reveal the logo on mobile, so wander the spotlight
-  // around the screen on its own; a real touch always takes priority.
-  function pickRoamPoint() {
-    return {
-      x: width * (ROAM_MARGIN + Math.random() * (1 - ROAM_MARGIN * 2)),
-      y: height * (ROAM_MARGIN + Math.random() * (1 - ROAM_MARGIN * 2)),
-    };
-  }
-
-  function easeInOutCubic(t) {
-    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  }
-
-  function roamTremor(t, amp) {
-    return {
-      x: Math.sin(t * 2.17) * amp + Math.sin(t * 5.31) * amp * 0.45 + Math.sin(t * 8.02) * amp * 0.2,
-      y: Math.cos(t * 1.83) * amp + Math.cos(t * 4.77) * amp * 0.45 + Math.cos(t * 7.41) * amp * 0.2,
-    };
-  }
-
-  function startRoamDwell() {
-    roamPhase = 'dwell';
-    roamPhaseStart = performance.now();
-    roamPhaseDuration = ROAM_DWELL_MIN + Math.random() * (ROAM_DWELL_MAX - ROAM_DWELL_MIN);
-    roamAnchorX = currentX ?? roamAnchorX;
-    roamAnchorY = currentY ?? roamAnchorY;
-  }
-
-  function startRoamTravel() {
-    roamPhase = 'travel';
-    roamPhaseStart = performance.now();
-    roamPhaseDuration = ROAM_TRAVEL_MIN + Math.random() * (ROAM_TRAVEL_MAX - ROAM_TRAVEL_MIN);
-    roamTravelFromX = currentX ?? roamAnchorX;
-    roamTravelFromY = currentY ?? roamAnchorY;
-    const next = pickRoamPoint();
-    roamNextX = next.x;
-    roamNextY = next.y;
-  }
-
-  function initRoam() {
-    const start = pickRoamPoint();
-    roamAnchorX = start.x;
-    roamAnchorY = start.y;
-    targetX = start.x;
-    targetY = start.y;
-    currentX = start.x;
-    currentY = start.y;
+  function initMobileSpotlight() {
+    if (!width || !height) return;
+    targetX = centerX;
+    targetY = centerY;
+    currentX = centerX;
+    currentY = centerY;
     pointerActive = true;
-    startRoamDwell();
+    fadeOut = 1;
+    revealAlpha = 1;
   }
 
-  function resumeRoam() {
-    roamAnchorX = currentX ?? roamAnchorX;
-    roamAnchorY = currentY ?? roamAnchorY;
-    startRoamDwell();
+  function clampSpotlight(x, y) {
+    const edgeX = width * MOTION_MARGIN;
+    const edgeY = height * MOTION_MARGIN;
+    return {
+      x: Math.min(width - edgeX, Math.max(edgeX, x)),
+      y: Math.min(height - edgeY, Math.max(edgeY, y)),
+    };
   }
 
-  function updateRoam(now) {
-    const t = now / 1000;
-    const elapsed = now - roamPhaseStart;
-    const tremor = roamTremor(t, ROAM_TREMOR);
+  function applyMotionTilt(gamma, beta) {
+    if (!width || !height) return;
 
-    if (roamPhase === 'dwell') {
-      if (elapsed >= roamPhaseDuration) {
-        startRoamTravel();
-        return updateRoam(now);
-      }
+    if (motionBaseline === null) {
+      motionBaseline = { gamma, beta };
+    }
 
-      const phase = t * 0.32;
-      const r = ROAM_SEARCH_RADIUS * (0.6 + 0.4 * Math.sin(t * 0.18));
-      const searchX = roamAnchorX + Math.cos(phase) * r + Math.sin(phase * 1.6) * r * 0.22;
-      const searchY = roamAnchorY + Math.sin(phase * 0.82) * r * 0.88;
-      updateTarget(searchX + tremor.x, searchY + tremor.y, { trackSpeed: false });
+    const dGamma = gamma - motionBaseline.gamma;
+    const dBeta = beta - motionBaseline.beta;
+    const maxDx = width * (0.5 - MOTION_MARGIN);
+    const maxDy = height * (0.5 - MOTION_MARGIN);
+    const rawX = centerX + (dGamma / MOTION_GAMMA_RANGE) * maxDx;
+    const rawY = centerY + (dBeta / MOTION_BETA_RANGE) * maxDy;
+    const point = clampSpotlight(rawX, rawY);
+    updateTarget(point.x, point.y);
+  }
+
+  function handleDeviceOrientation(e) {
+    if (!motionEnabled || e.gamma == null || e.beta == null) return;
+    applyMotionTilt(e.gamma, e.beta);
+  }
+
+  function motionNeedsPermission() {
+    return typeof DeviceOrientationEvent !== 'undefined'
+      && typeof DeviceOrientationEvent.requestPermission === 'function';
+  }
+
+  function startMotionListeners() {
+    window.addEventListener('deviceorientation', handleDeviceOrientation, true);
+    motionEnabled = true;
+    motionBaseline = null;
+    initMobileSpotlight();
+  }
+
+  function enableDeviceMotion() {
+    if (motionEnabled) return;
+
+    if (motionNeedsPermission()) {
+      DeviceOrientationEvent.requestPermission()
+        .then((state) => {
+          if (state === 'granted') startMotionListeners();
+        })
+        .catch(() => {});
       return;
     }
 
-    const prog = Math.min(1, elapsed / roamPhaseDuration);
-    const eased = easeInOutCubic(prog);
-    const baseX = roamTravelFromX + (roamNextX - roamTravelFromX) * eased;
-    const baseY = roamTravelFromY + (roamNextY - roamTravelFromY) * eased;
-
-    const dx = roamNextX - roamTravelFromX;
-    const dy = roamNextY - roamTravelFromY;
-    const len = Math.hypot(dx, dy) || 1;
-    const perpX = -dy / len;
-    const perpY = dx / len;
-    const sway = Math.sin(prog * Math.PI * 2.2) * ROAM_TRAVEL_SWAY * (0.35 + 0.65 * Math.sin(prog * Math.PI));
-    const travelShake = roamTremor(t * 1.25, ROAM_TREMOR + ROAM_TRAVEL_TREMOR * Math.sin(prog * Math.PI));
-
-    updateTarget(
-      baseX + perpX * sway + travelShake.x,
-      baseY + perpY * sway + travelShake.y
-    );
-
-    if (prog >= 1) {
-      roamAnchorX = roamNextX;
-      roamAnchorY = roamNextY;
-      startRoamDwell();
-    }
+    startMotionListeners();
   }
 
   window.addEventListener('resize', resize);
@@ -533,7 +470,12 @@
 
   resize();
   requestAnimationFrame(render);
-  if (isTouchDevice) initRoam();
+  if (isTouchDevice) {
+    initMobileSpotlight();
+    if (!motionNeedsPermission()) {
+      enableDeviceMotion();
+    }
+  }
 })();
 </script>
 
