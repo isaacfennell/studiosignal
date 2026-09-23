@@ -174,12 +174,10 @@
   .motion-prompt {
     position: absolute;
     left: 50%;
-    bottom: calc(28px + env(safe-area-inset-bottom, 0px));
-    transform: translateX(-50%);
+    top: 50%;
+    transform: translate(-50%, -50%);
     z-index: 3;
-    width: min(92vw, 22rem);
-    pointer-events: auto;
-    text-align: center;
+    pointer-events: none;
   }
 
   .motion-prompt[hidden] {
@@ -187,27 +185,20 @@
   }
 
   .motion-prompt__btn {
-    width: 100%;
+    display: block;
     margin: 0;
-    padding: 14px 18px;
-    border: 1px solid var(--fg);
-    border-radius: 999px;
-    background: rgba(16, 16, 16, 0.82);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    color: var(--fg);
-    font-family: "zuume", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: transparent;
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    pointer-events: auto;
   }
 
   .motion-prompt__btn:disabled {
-    opacity: 0.55;
     cursor: wait;
   }
 </style>
@@ -217,9 +208,7 @@
 <section class="hero" id="hero">
   <canvas id="sunCanvas"></canvas>
   <div class="motion-prompt" id="motionPrompt" hidden>
-    <button type="button" class="motion-prompt__btn" id="motionPromptBtn">
-      Enable motion control
-    </button>
+    <button type="button" class="motion-prompt__btn" id="motionPromptBtn" aria-label="Enable motion control"></button>
   </div>
   <div class="layout">
     <div class="eyebrow header-left">We are Studio Signal</div>
@@ -261,17 +250,17 @@
   const REVEAL_RADIUS_MIN = 170;     // px — searchlight floor on desktop-width viewports
   const REVEAL_RADIUS_MAX = 340;     // px — searchlight size ceiling, on wide desktop viewports
   const REVEAL_RADIUS_VW = 0.18;     // preferred size as a share of the hero's width, like clamp()'s middle arg
-  const REVEAL_RADIUS_VW_MOBILE = 0.28; // mobile scales with viewport — avoids the desktop min blowing up the beam
-  const REVEAL_RADIUS_MIN_MOBILE = 88;
-  const REVEAL_RADIUS_MAX_MOBILE = 200;
-  const REVEAL_RADIUS_MOBILE_SCALE = 1.2; // default beam size on mobile (+20%)
+  const REVEAL_RADIUS_VW_MOBILE = 0.31; // mobile scales with viewport — avoids the desktop min blowing up the beam
+  const REVEAL_RADIUS_MIN_MOBILE = 96;
+  const REVEAL_RADIUS_MAX_MOBILE = 220;
+  const REVEAL_RADIUS_MOBILE_SCALE = 1.38; // default beam size on mobile
   const REVEAL_CORE_FRACTION = 0.14; // share of radius that stays fully opaque before falloff (desktop)
   const REVEAL_CORE_FRACTION_MOBILE = 0.16; // slightly softer base falloff on mobile
-  const REVEAL_CORE_BLOOM_MOBILE = 0.35; // extra core width while the beam swells on movement
+  const REVEAL_CORE_BLOOM_MOBILE = 0.16; // extra core width while the beam swells on movement
   const POINTER_EASE = 0.14;         // 0..1, how quickly the glow follows the mouse/finger
   const GROWTH_ON_MOVE = 0.15;       // spotlight grows up to 15% while actively moving (desktop)
-  const GROWTH_ON_MOVE_MOBILE = 0.58; // mobile tilt: stronger speed-linked expansion
-  const MAX_RADIUS_SCALE_MOBILE = 1.72; // ceiling on mobile beam scale (base + growth)
+  const GROWTH_ON_MOVE_MOBILE = 0.36; // mobile tilt: speed-linked expansion
+  const MAX_RADIUS_SCALE_MOBILE = 1.48; // ceiling on mobile beam scale (base + growth)
   const SPEED_FOR_MAX_GROWTH = 35;   // px/move-event needed to hit full growth
   const SPEED_FOR_MAX_GROWTH_MOBILE = 9; // lower bar — tilt deltas are smaller per event
   const GRADIENT_STOPS = 16;         // samples along the spotlight's falloff curve — higher = smoother
@@ -347,7 +336,15 @@
     buildLogoLayer();
     if (isTouchDevice && !motionEnabled) {
       initMobileSpotlight();
+      syncMotionPromptOverlay();
     }
+  }
+
+  function syncMotionPromptOverlay() {
+    if (!motionPromptBtn || motionEnabled) return;
+    const diameter = revealRadius * 2;
+    motionPromptBtn.style.width = diameter + 'px';
+    motionPromptBtn.style.height = diameter + 'px';
   }
 
   function computeRevealRadius(w) {
@@ -532,6 +529,7 @@
   }
 
   function handlePointerMove(e) {
+    if (isTouchDevice) return; // iOS/Android synthesize mousemove on tap — would spike bloom
     const rect = hero.getBoundingClientRect();
     updateTarget(e.clientX - rect.left, e.clientY - rect.top);
   }
@@ -541,13 +539,15 @@
   }
 
   function isInteractiveTouchTarget(e) {
-    const el = e.target instanceof Element ? e.target.closest('a') : null;
+    if (!(e.target instanceof Element)) return false;
+    const el = e.target.closest('a, .motion-prompt, .motion-prompt__btn');
     return el !== null && hero.contains(el);
   }
 
   function showMotionPrompt() {
     if (!motionPrompt || motionEnabled) return;
     motionPrompt.hidden = false;
+    syncMotionPromptOverlay();
   }
 
   function hideMotionPrompt() {
@@ -588,6 +588,8 @@
     pointerActive = true;
     fadeOut = 1;
     revealAlpha = 1;
+    moveSpeed = 0;
+    radiusScale = 1;
   }
 
   function clampLogoPan(panX, panY) {
@@ -817,12 +819,12 @@
       if (granted) {
         startMotionListeners();
       } else if (motionPromptBtn) {
-        motionPromptBtn.textContent = 'Motion blocked — tap to retry';
+        motionPromptBtn.setAttribute('aria-label', 'Motion blocked — tap to retry');
         motionPromptBtn.disabled = false;
       }
     } catch (_) {
       if (motionPromptBtn) {
-        motionPromptBtn.textContent = 'Motion unavailable — tap to retry';
+        motionPromptBtn.setAttribute('aria-label', 'Motion unavailable — tap to retry');
         motionPromptBtn.disabled = false;
       }
     } finally {
@@ -844,8 +846,12 @@
   hero.addEventListener('mouseleave', handlePointerLeave);
   // touchstart reveals immediately on tap/hold, not just once the finger starts dragging
   hero.addEventListener('touchstart', handleTouchStart, { passive: true });
+  if (motionPrompt) {
+    motionPrompt.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+  }
   if (motionPromptBtn) {
-    motionPromptBtn.addEventListener('click', () => {
+    motionPromptBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
       void activateMotionFromUserClick();
     });
   }
