@@ -227,6 +227,12 @@
   const MOTION_BETA_RANGE = 22;      // degrees of forward/back tilt for full vertical travel
   const POINTER_EASE_MOTION = 0.2;   // how quickly the beam follows tilt
   const isTouchDevice = matchMedia('(hover: none)').matches; // mobile: centre beam + device tilt
+  const isIosDevice = (() => {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/i.test(ua)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  })();
   let dpr = Math.min(window.devicePixelRatio || 1, 2);
   let width = 0, height = 0;
   let centerX = 0, centerY = 0;
@@ -372,11 +378,15 @@
     return el !== null && hero.contains(el);
   }
 
-  function handleTouchStart(e) {
-    if (isInteractiveTouchTarget(e)) return;
+  function handleMotionUserGesture() {
     if (isTouchDevice && !motionEnabled) {
       enableDeviceMotion();
     }
+  }
+
+  function handleTouchStart(e) {
+    handleMotionUserGesture();
+    if (isInteractiveTouchTarget(e)) return;
   }
 
   function handleTouchMove(e) {
@@ -427,32 +437,82 @@
     updateTarget(point.x, point.y);
   }
 
+  let motionFromGravity = false;
+
+  function tiltFromGravity(x, y, z) {
+    const beta = Math.atan2(-z, Math.sqrt(x * x + y * y)) * (180 / Math.PI);
+    const gamma = Math.atan2(x, y) * (180 / Math.PI);
+    return { gamma, beta };
+  }
+
   function handleDeviceOrientation(e) {
-    if (!motionEnabled || e.gamma == null || e.beta == null) return;
+    if (!motionEnabled || motionFromGravity) return;
+    if (e.gamma == null || e.beta == null) return;
     applyMotionTilt(e.gamma, e.beta);
   }
 
-  function motionNeedsPermission() {
-    return typeof DeviceOrientationEvent !== 'undefined'
-      && typeof DeviceOrientationEvent.requestPermission === 'function';
+  function handleDeviceMotion(e) {
+    if (!motionEnabled) return;
+    const g = e.accelerationIncludingGravity;
+    if (!g || g.x == null || g.y == null || g.z == null) return;
+    const { gamma, beta } = tiltFromGravity(g.x, g.y, g.z);
+    motionFromGravity = true;
+    applyMotionTilt(gamma, beta);
+  }
+
+  function motionRequiresUserGesture() {
+    if (isIosDevice) return true;
+    return (typeof DeviceOrientationEvent !== 'undefined'
+      && typeof DeviceOrientationEvent.requestPermission === 'function')
+      || (typeof DeviceMotionEvent !== 'undefined'
+      && typeof DeviceMotionEvent.requestPermission === 'function');
+  }
+
+  function requestMotionPermissions() {
+    let permissionPromise = Promise.resolve('granted');
+
+    if (typeof DeviceOrientationEvent !== 'undefined'
+      && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      permissionPromise = DeviceOrientationEvent.requestPermission();
+    } else if (typeof DeviceMotionEvent !== 'undefined'
+      && typeof DeviceMotionEvent.requestPermission === 'function') {
+      permissionPromise = DeviceMotionEvent.requestPermission();
+    }
+
+    return permissionPromise
+      .then((state) => {
+        if (state !== 'granted') return false;
+        if (typeof DeviceMotionEvent !== 'undefined'
+          && typeof DeviceMotionEvent.requestPermission === 'function'
+          && typeof DeviceOrientationEvent !== 'undefined'
+          && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          return DeviceMotionEvent.requestPermission()
+            .then((motionState) => motionState === 'granted' || motionState === 'denied')
+            .catch(() => true);
+        }
+        return true;
+      })
+      .catch(() => false);
   }
 
   function startMotionListeners() {
     window.addEventListener('deviceorientation', handleDeviceOrientation, true);
+    if (isIosDevice) {
+      window.addEventListener('devicemotion', handleDeviceMotion, true);
+    }
     motionEnabled = true;
     motionBaseline = null;
+    motionFromGravity = false;
     initMobileSpotlight();
   }
 
   function enableDeviceMotion() {
     if (motionEnabled) return;
 
-    if (motionNeedsPermission()) {
-      DeviceOrientationEvent.requestPermission()
-        .then((state) => {
-          if (state === 'granted') startMotionListeners();
-        })
-        .catch(() => {});
+    if (motionRequiresUserGesture()) {
+      requestMotionPermissions().then((granted) => {
+        if (granted) startMotionListeners();
+      });
       return;
     }
 
@@ -464,6 +524,7 @@
   hero.addEventListener('mouseleave', handlePointerLeave);
   // touchstart reveals immediately on tap/hold, not just once the finger starts dragging
   hero.addEventListener('touchstart', handleTouchStart, { passive: true });
+  hero.addEventListener('pointerdown', handleMotionUserGesture, { passive: true });
   hero.addEventListener('touchmove', handleTouchMove, { passive: false });
   hero.addEventListener('touchend', handleTouchEnd);
   hero.addEventListener('touchcancel', handleTouchEnd);
@@ -472,7 +533,7 @@
   requestAnimationFrame(render);
   if (isTouchDevice) {
     initMobileSpotlight();
-    if (!motionNeedsPermission()) {
+    if (!motionRequiresUserGesture()) {
       enableDeviceMotion();
     }
   }
