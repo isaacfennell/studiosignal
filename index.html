@@ -535,8 +535,8 @@
     const dBeta = beta - motionBaseline.beta;
     const maxDx = width * (0.5 - MOTION_MARGIN);
     const maxDy = height * (0.5 - MOTION_MARGIN);
-    const rawX = centerX + (dGamma / MOTION_GAMMA_RANGE) * maxDx;
-    const rawY = centerY + (dBeta / MOTION_BETA_RANGE) * maxDy;
+    const rawX = centerX - (dGamma / MOTION_GAMMA_RANGE) * maxDx;
+    const rawY = centerY - (dBeta / MOTION_BETA_RANGE) * maxDy;
     const point = clampSpotlight(rawX, rawY);
     updateTarget(point.x, point.y);
   }
