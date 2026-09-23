@@ -1,3 +1,8 @@
+---
+title: Studio Signal
+description: From brand positioning to launch day and beyond, we build the whole picture. Studio Signal is a UK brand and web studio enabling purpose-led organisations to cut through the digital noise.
+---
+
 # Studio Signal
 
 > From brand positioning to launch day and beyond, we build the whole picture. Studio Signal is a UK brand and web studio enabling purpose-led organisations to cut through the digital noise.

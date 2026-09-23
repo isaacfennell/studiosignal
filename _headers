@@ -1,0 +1,11 @@
+/
+  Link: </sitemap.xml>; rel="describedby"; type="application/xml", </llms.txt>; rel="describedby"; type="text/plain", </robots.txt>; rel="describedby"; type="text/plain"
+  Vary: Accept
+
+/index.html
+  Link: </sitemap.xml>; rel="describedby"; type="application/xml", </llms.txt>; rel="describedby"; type="text/plain", </robots.txt>; rel="describedby"; type="text/plain"
+  Vary: Accept
+
+/index.md
+  Content-Type: text/markdown; charset=utf-8
+  Vary: Accept
