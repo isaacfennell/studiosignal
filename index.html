@@ -266,12 +266,15 @@
   const REVEAL_RADIUS_MAX_MOBILE = 200;
   const REVEAL_CORE_FRACTION = 0.14; // share of radius that stays fully opaque before falloff
   const POINTER_EASE = 0.14;         // 0..1, how quickly the glow follows the mouse/finger
-  const GROWTH_ON_MOVE = 0.15;       // spotlight grows up to 15% while actively moving
+  const GROWTH_ON_MOVE = 0.15;       // spotlight grows up to 15% while actively moving (desktop)
+  const GROWTH_ON_MOVE_MOBILE = 0.45; // mobile tilt: stronger speed-linked expansion
+  const MAX_RADIUS_SCALE_MOBILE = 1.52; // ceiling on mobile beam scale (base + growth)
   const SPEED_FOR_MAX_GROWTH = 35;   // px/move-event needed to hit full growth
+  const SPEED_FOR_MAX_GROWTH_MOBILE = 9; // lower bar — tilt deltas are smaller per event
   const GRADIENT_STOPS = 16;         // samples along the spotlight's falloff curve — higher = smoother
   const MOTION_MARGIN = 0.12;        // keep the beam off the viewport edges
-  const MOTION_GAMMA_RANGE = 28;     // degrees of left/right tilt for full horizontal travel
-  const MOTION_BETA_RANGE = 22;      // degrees of forward/back tilt for full vertical travel
+  const MOTION_GAMMA_RANGE = 21.5;   // degrees for full horizontal travel (+30% sensitivity vs 28)
+  const MOTION_BETA_RANGE = 16.9;    // degrees for full vertical travel (+30% sensitivity vs 22)
   const MOTION_CALIBRATION_SAMPLES = 10; // average first samples so mixed sensor frames do not yank the beam
   const POINTER_EASE_MOTION = 0.2;   // how quickly the beam follows tilt
   const isTouchDevice = matchMedia('(hover: none)').matches; // mobile: centre beam + device tilt
@@ -308,6 +311,8 @@
   let motionGammaFromGravity = null; // iOS often omits gamma on deviceorientation; gravity fills horizontal
   let latestOrientationGamma = null;
   let latestOrientationBeta = null;
+  let prevRenderX = null;
+  let prevRenderY = null;
 
   function resize() {
     const rect = hero.getBoundingClientRect();
@@ -372,10 +377,30 @@
     fadeOut += (fadeTarget - fadeOut) * 0.09;
     revealAlpha += (fadeOut - revealAlpha) * 0.18;
 
+    const isMobileLayout = width < MOBILE_BREAKPOINT;
+    if (isMobileLayout && motionEnabled && currentX !== null && prevRenderX !== null) {
+      const frameDx = currentX - prevRenderX;
+      const frameDy = currentY - prevRenderY;
+      moveSpeed = Math.max(moveSpeed, Math.hypot(frameDx, frameDy));
+    }
+    if (currentX !== null) {
+      prevRenderX = currentX;
+      prevRenderY = currentY;
+    } else {
+      prevRenderX = null;
+      prevRenderY = null;
+    }
+
     // grow the spotlight while actively moving, shrink back when it settles
     moveSpeed *= 0.85;
-    const growthTarget = 1 + GROWTH_ON_MOVE * Math.min(1, moveSpeed / SPEED_FOR_MAX_GROWTH);
-    radiusScale += (growthTarget - radiusScale) * 0.15;
+    const growthOnMove = isMobileLayout ? GROWTH_ON_MOVE_MOBILE : GROWTH_ON_MOVE;
+    const speedForMaxGrowth = isMobileLayout ? SPEED_FOR_MAX_GROWTH_MOBILE : SPEED_FOR_MAX_GROWTH;
+    let growthTarget = 1 + growthOnMove * Math.min(1, moveSpeed / speedForMaxGrowth);
+    if (isMobileLayout) {
+      growthTarget = Math.min(MAX_RADIUS_SCALE_MOBILE, growthTarget);
+    }
+    const radiusEase = isMobileLayout ? 0.22 : 0.15;
+    radiusScale += (growthTarget - radiusScale) * radiusEase;
 
     if (currentX !== null && revealAlpha > 0.002 && logoLayer) {
       ctx.save();
