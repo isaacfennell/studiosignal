@@ -415,7 +415,16 @@
   const MOTION_GAMMA_RANGE = 21.5;   // degrees for full horizontal travel (+30% sensitivity vs 28)
   const MOTION_BETA_RANGE = 16.9;    // degrees for full vertical travel (+30% sensitivity vs 22)
   const MOTION_PAN_GAIN_X = 1.28;    // horizontal tilt reaches pan limits slightly faster than vertical
-  const MOTION_CALIBRATION_SAMPLES = 10; // average first samples so mixed sensor frames do not yank the beam
+  const MOTION_CALIBRATION_SAMPLES = 10; // average first gravity samples so mixed frames do not yank the beam
+  const MOTION_GRAVITY_SMOOTH = 0.38; // low-pass on gravity vector — calmer upright without laggy pan
+  const MOTION_ORIENTATION_FALLBACK_MS = 160; // use deviceorientation only when devicemotion is absent
+  const MOTION_BASELINE_SETTLE_MS = 1400; // after tap: keep pan centred while grip/posture settles
+  const MOTION_BASELINE_SETTLE_BLEND = 0.08; // how fast baseline follows posture during settle
+  const MOTION_BASELINE_SETTLE_BREAKOUT_DEG = 2.2; // deliberate tilt ends settle and hands control back
+  const MOTION_IDLE_RECENTER_MS = 750; // steady near-centre → slowly trim baseline
+  const MOTION_IDLE_RECENTER_PX = 16;
+  const MOTION_IDLE_RECENTER_RATE_DEG = 0.55; // max per-sample angle change to count as “still”
+  const MOTION_IDLE_RECENTER_BLEND = 0.045;
   const MOTION_LOGO_ZOOM_MOBILE = 1.65; // headroom for pan without cropping the mark off-layer
   const LOGO_LAYER_BLEED = 16;       // px padding so the full SVG is drawable inside the pan layer
   const LOGO_MOTION_ANCHOR_Y = 168.5 / 287; // viewBox Y below the STUDIO/SIGNAL row gap (not geometric centre)
@@ -468,10 +477,13 @@
   let motionPromptDragOffer = false;
   let motionCalibrating = false;
   let motionCalibrationBuffer = [];
-  let motionBaseline = null; // gamma/beta when calibrated — spotlight rests at screen centre
-  let motionGammaFromGravity = null; // iOS often omits gamma on deviceorientation; gravity fills horizontal
-  let latestOrientationGamma = null;
-  let latestOrientationBeta = null;
+  let motionBaseline = null; // pan angles derived from calibrated gravity — spotlight rests at centre
+  let motionGravitySmoothed = null; // eased accelerationIncludingGravity (device frame)
+  let lastDeviceMotionAt = 0;
+  let motionBaselineSettlingUntil = 0;
+  let motionIdleNearCenterSince = 0;
+  let motionPrevSampleGamma = null;
+  let motionPrevSampleBeta = null;
   let prevRenderX = null;
   let prevRenderY = null;
   let logoPanTargetX = 0;
@@ -989,9 +1001,12 @@
     motionCalibrating = true;
     motionCalibrationBuffer = [];
     motionBaseline = null;
-    motionGammaFromGravity = null;
-    latestOrientationGamma = null;
-    latestOrientationBeta = null;
+    motionGravitySmoothed = null;
+    lastDeviceMotionAt = 0;
+    motionBaselineSettlingUntil = 0;
+    motionIdleNearCenterSince = 0;
+    motionPrevSampleGamma = null;
+    motionPrevSampleBeta = null;
     initMobileSpotlight();
   }
 
@@ -1001,17 +1016,46 @@
       return;
     }
 
-    let gammaSum = 0;
-    let betaSum = 0;
-    for (let i = 0; i < motionCalibrationBuffer.length; i++) {
-      gammaSum += motionCalibrationBuffer[i].gamma;
-      betaSum += motionCalibrationBuffer[i].beta;
+    const first = motionCalibrationBuffer[0];
+    if (first.gx != null && first.gy != null && first.gz != null) {
+      let gxSum = 0;
+      let gySum = 0;
+      let gzSum = 0;
+      for (let i = 0; i < motionCalibrationBuffer.length; i++) {
+        gxSum += motionCalibrationBuffer[i].gx;
+        gySum += motionCalibrationBuffer[i].gy;
+        gzSum += motionCalibrationBuffer[i].gz;
+      }
+      const count = motionCalibrationBuffer.length;
+      motionBaseline = panAnglesFromGravity(
+        gxSum / count,
+        gySum / count,
+        gzSum / count,
+      );
+    } else {
+      let gammaSum = 0;
+      let betaSum = 0;
+      for (let i = 0; i < motionCalibrationBuffer.length; i++) {
+        gammaSum += motionCalibrationBuffer[i].gamma;
+        betaSum += motionCalibrationBuffer[i].beta;
+      }
+      const count = motionCalibrationBuffer.length;
+      motionBaseline = { gamma: gammaSum / count, beta: betaSum / count };
     }
-    const count = motionCalibrationBuffer.length;
-    motionBaseline = { gamma: gammaSum / count, beta: betaSum / count };
+
     motionCalibrating = false;
     motionCalibrationBuffer = [];
+    motionBaselineSettlingUntil = performance.now() + MOTION_BASELINE_SETTLE_MS;
+    motionIdleNearCenterSince = 0;
+    motionPrevSampleGamma = null;
+    motionPrevSampleBeta = null;
     holdSpotlightAtCenter();
+  }
+
+  function nudgeMotionBaselineToward(gamma, beta, blend) {
+    if (!motionBaseline) return;
+    motionBaseline.gamma += wrapAngleDelta(gamma - motionBaseline.gamma) * blend;
+    motionBaseline.beta += (beta - motionBaseline.beta) * blend;
   }
 
   function applyTouchPan(localX, localY) {
@@ -1035,25 +1079,54 @@
     resetPanTipIdleClock();
   }
 
-  function applyMotionTilt(gamma, beta) {
+  function wrapAngleDelta(degrees) {
+    let d = degrees;
+    while (d > 180) d -= 360;
+    while (d < -180) d += 360;
+    return d;
+  }
+
+  function applyMotionPanFromAngles(gamma, beta) {
     if (!width || !height) return;
-
-    if (motionCalibrating) {
-      motionCalibrationBuffer.push({ gamma, beta });
-      if (motionCalibrationBuffer.length >= MOTION_CALIBRATION_SAMPLES) {
-        finishMotionCalibration();
-      }
-      holdSpotlightAtCenter();
-      return;
-    }
-
     if (motionBaseline === null) {
       motionBaseline = { gamma, beta };
       holdSpotlightAtCenter();
+      motionPrevSampleGamma = gamma;
+      motionPrevSampleBeta = beta;
       return;
     }
 
-    const dGamma = gamma - motionBaseline.gamma;
+    const now = performance.now();
+    const sampleMotion = motionPrevSampleGamma != null
+      ? Math.hypot(
+        wrapAngleDelta(gamma - motionPrevSampleGamma),
+        beta - motionPrevSampleBeta,
+      )
+      : 0;
+
+    if (now < motionBaselineSettlingUntil) {
+      nudgeMotionBaselineToward(gamma, beta, MOTION_BASELINE_SETTLE_BLEND);
+      if (sampleMotion >= MOTION_BASELINE_SETTLE_BREAKOUT_DEG) {
+        motionBaselineSettlingUntil = 0;
+      } else {
+        holdSpotlightAtCenter();
+        motionPrevSampleGamma = gamma;
+        motionPrevSampleBeta = beta;
+        return;
+      }
+    }
+
+    const panMag = Math.hypot(logoPanTargetX, logoPanTargetY);
+    if (panMag <= MOTION_IDLE_RECENTER_PX && sampleMotion <= MOTION_IDLE_RECENTER_RATE_DEG) {
+      if (!motionIdleNearCenterSince) motionIdleNearCenterSince = now;
+      if (now - motionIdleNearCenterSince >= MOTION_IDLE_RECENTER_MS) {
+        nudgeMotionBaselineToward(gamma, beta, MOTION_IDLE_RECENTER_BLEND);
+      }
+    } else {
+      motionIdleNearCenterSince = 0;
+    }
+
+    const dGamma = wrapAngleDelta(gamma - motionBaseline.gamma);
     const dBeta = beta - motionBaseline.beta;
     const maxDx = logoPanLimitX > 0 ? logoPanLimitX : width * (0.5 - MOTION_MARGIN);
     const maxDy = logoPanLimitY > 0 ? logoPanLimitY : height * (0.5 - MOTION_MARGIN);
@@ -1062,6 +1135,40 @@
     const panY = (dBeta / MOTION_BETA_RANGE) * maxDy;
     const pan = clampLogoPan(panX, panY);
     updateLogoPan(pan.x, pan.y);
+    motionPrevSampleGamma = gamma;
+    motionPrevSampleBeta = beta;
+  }
+
+  function applyMotionFromGravity(gx, gy, gz) {
+    if (!width || !height) return;
+    if (gx == null || gy == null || gz == null
+      || Number.isNaN(gx) || Number.isNaN(gy) || Number.isNaN(gz)) {
+      return;
+    }
+
+    if (motionCalibrating) {
+      motionCalibrationBuffer.push({ gx, gy, gz });
+      if (motionCalibrationBuffer.length >= MOTION_CALIBRATION_SAMPLES) {
+        finishMotionCalibration();
+      }
+      holdSpotlightAtCenter();
+      return;
+    }
+
+    const angles = panAnglesFromGravity(gx, gy, gz);
+    applyMotionPanFromAngles(angles.gamma, angles.beta);
+  }
+
+  function smoothGravitySample(gx, gy, gz) {
+    if (!motionGravitySmoothed) {
+      motionGravitySmoothed = { gx, gy, gz };
+      return motionGravitySmoothed;
+    }
+    const blend = MOTION_GRAVITY_SMOOTH;
+    motionGravitySmoothed.gx += (gx - motionGravitySmoothed.gx) * blend;
+    motionGravitySmoothed.gy += (gy - motionGravitySmoothed.gy) * blend;
+    motionGravitySmoothed.gz += (gz - motionGravitySmoothed.gz) * blend;
+    return motionGravitySmoothed;
   }
 
   function screenOrientationAngle() {
@@ -1072,7 +1179,7 @@
     return 0;
   }
 
-  function tiltFromGravity(x, y, z) {
+  function panAnglesFromGravity(x, y, z) {
     let gx = x;
     let gy = y;
     const gz = z;
@@ -1096,49 +1203,31 @@
     return { gamma, beta };
   }
 
-  function resolveMotionGamma(orientationGamma) {
-    const gravityGamma = motionGammaFromGravity;
-    const hasGravityGamma = gravityGamma != null && !Number.isNaN(gravityGamma);
-
-    if (isIosDevice && hasGravityGamma) {
-      if (orientationGamma == null || Number.isNaN(orientationGamma)) {
-        return gravityGamma;
-      }
-      // iOS often reports 0 gamma while the accelerometer still sees roll.
-      if (Math.abs(orientationGamma) < 0.01) {
-        return gravityGamma;
-      }
-    }
-
-    if (orientationGamma != null && !Number.isNaN(orientationGamma)) {
-      return orientationGamma;
-    }
-    return hasGravityGamma ? gravityGamma : null;
-  }
-
-  function emitMotionTiltFromSensors(orientationGamma, beta) {
-    if (beta == null || Number.isNaN(beta)) return;
-    const gamma = resolveMotionGamma(orientationGamma);
-    if (gamma == null || Number.isNaN(gamma)) return;
-    applyMotionTilt(gamma, beta);
-  }
-
   function handleDeviceOrientation(e) {
     if (!motionEnabled) return;
+    if (performance.now() - lastDeviceMotionAt < MOTION_ORIENTATION_FALLBACK_MS) return;
     if (e.beta == null || Number.isNaN(e.beta)) return;
-    latestOrientationGamma = e.gamma;
-    latestOrientationBeta = e.beta;
-    emitMotionTiltFromSensors(e.gamma, e.beta);
+    if (e.gamma == null || Number.isNaN(e.gamma)) return;
+
+    if (motionCalibrating) {
+      motionCalibrationBuffer.push({ gamma: e.gamma, beta: e.beta });
+      if (motionCalibrationBuffer.length >= MOTION_CALIBRATION_SAMPLES) {
+        finishMotionCalibration();
+      }
+      holdSpotlightAtCenter();
+      return;
+    }
+
+    applyMotionPanFromAngles(e.gamma, e.beta);
   }
 
   function handleDeviceMotion(e) {
-    if (!motionEnabled || !isIosDevice) return;
+    if (!motionEnabled) return;
     const g = e.accelerationIncludingGravity;
     if (!g || g.x == null || g.y == null || g.z == null) return;
-    motionGammaFromGravity = tiltFromGravity(g.x, g.y, g.z).gamma;
-    if (latestOrientationBeta != null) {
-      emitMotionTiltFromSensors(latestOrientationGamma, latestOrientationBeta);
-    }
+    lastDeviceMotionAt = performance.now();
+    const smoothed = smoothGravitySample(g.x, g.y, g.z);
+    applyMotionFromGravity(smoothed.gx, smoothed.gy, smoothed.gz);
   }
 
   function resetMotionBaseline() {
@@ -1182,9 +1271,7 @@
 
   function startMotionListeners() {
     window.addEventListener('deviceorientation', handleDeviceOrientation, true);
-    if (isIosDevice) {
-      window.addEventListener('devicemotion', handleDeviceMotion, true);
-    }
+    window.addEventListener('devicemotion', handleDeviceMotion, true);
     motionEnabled = true;
     buildLogoLayer();
     beginMotionCalibration();
