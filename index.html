@@ -111,6 +111,18 @@
 
   .nav-link svg {
     flex: none;
+    overflow: visible;
+  }
+
+  .nav-link .external-link-arrow {
+    transition: transform 300ms ease, fill 300ms ease;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .nav-link:hover .external-link-arrow {
+    transform: translate(2px, -2px);
+    fill: #FFD16B;
   }
 
   .header-left { grid-area: header-left; justify-self: start; align-self: start; font-size: 2.375rem; }
@@ -120,6 +132,10 @@
     justify-self: end;
     align-self: start;
     text-align: right;
+  }
+
+  .header-right-plus {
+    color: #C8F3FA;
   }
 
   .footer-left {
@@ -157,6 +173,11 @@
     .footer-right {
       justify-self: start;
       text-align: left;
+    }
+
+    .footer-right,
+    .footer-left {
+      margin-top: -0.5rem;
     }
   }
 
@@ -341,14 +362,14 @@
   </div>
   <p class="pan-tip" id="panTip" role="status" aria-live="polite" hidden></p>
   <div class="layout">
-    <div class="eyebrow header-left">We are Studio Signal</div>
-    <div class="eyebrow header-right">Branding + web that light the way</div>
+    <div class="eyebrow header-left">Studio Signal</div>
+    <div class="eyebrow header-right">Branding <span class="header-right-plus" aria-hidden="true">+</span> web that light the way</div>
     <div class="footer-left">
-      <a class="nav-link" href="https://www.instagram.com/studiosignalco/" target="_blank" rel="noopener noreferrer">Insta<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
-      <a class="nav-link" href="https://www.linkedin.com/company/studiosignalco" target="_blank" rel="noopener noreferrer">LinkedIn<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
+      <a class="nav-link" href="https://www.instagram.com/studiosignalco/" target="_blank" rel="noopener noreferrer">Insta<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="external-link-arrow" d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
+      <a class="nav-link" href="https://www.linkedin.com/company/studiosignalco" target="_blank" rel="noopener noreferrer">LinkedIn<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="external-link-arrow" d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
     </div>
     <div class="enquiries footer-right">
-      Enquiries: <a href="mailto:hi@studiosignal.co.uk">hi@studiosignal.co.uk</a>
+      <a href="mailto:hi@studiosignal.co.uk">hi@studiosignal.co.uk</a>
     </div>
   </div>
 </section>
