@@ -272,6 +272,7 @@
   const MOTION_MARGIN = 0.12;        // keep the beam off the viewport edges
   const MOTION_GAMMA_RANGE = 28;     // degrees of left/right tilt for full horizontal travel
   const MOTION_BETA_RANGE = 22;      // degrees of forward/back tilt for full vertical travel
+  const MOTION_CALIBRATION_SAMPLES = 10; // average first samples so mixed sensor frames do not yank the beam
   const POINTER_EASE_MOTION = 0.2;   // how quickly the beam follows tilt
   const isTouchDevice = matchMedia('(hover: none)').matches; // mobile: centre beam + device tilt
   const isIosDevice = (() => {
@@ -301,8 +302,12 @@
   let revealRadius = REVEAL_RADIUS_MIN; // clamp(MIN, width * VW, MAX), recalculated on resize
   let motionEnabled = false;
   let motionActivationPending = false;
+  let motionCalibrating = false;
+  let motionCalibrationBuffer = [];
   let motionBaseline = null; // gamma/beta when calibrated — spotlight rests at screen centre
-  let lastOrientationEventAt = 0;
+  let motionGammaFromGravity = null; // iOS often omits gamma on deviceorientation; gravity fills horizontal
+  let latestOrientationGamma = null;
+  let latestOrientationBeta = null;
 
   function resize() {
     const rect = hero.getBoundingClientRect();
@@ -475,11 +480,55 @@
     };
   }
 
+  function holdSpotlightAtCenter() {
+    updateTarget(centerX, centerY, { trackSpeed: false });
+  }
+
+  function beginMotionCalibration() {
+    motionCalibrating = true;
+    motionCalibrationBuffer = [];
+    motionBaseline = null;
+    motionGammaFromGravity = null;
+    latestOrientationGamma = null;
+    latestOrientationBeta = null;
+    initMobileSpotlight();
+  }
+
+  function finishMotionCalibration() {
+    if (!motionCalibrationBuffer.length) {
+      motionCalibrating = false;
+      return;
+    }
+
+    let gammaSum = 0;
+    let betaSum = 0;
+    for (let i = 0; i < motionCalibrationBuffer.length; i++) {
+      gammaSum += motionCalibrationBuffer[i].gamma;
+      betaSum += motionCalibrationBuffer[i].beta;
+    }
+    const count = motionCalibrationBuffer.length;
+    motionBaseline = { gamma: gammaSum / count, beta: betaSum / count };
+    motionCalibrating = false;
+    motionCalibrationBuffer = [];
+    holdSpotlightAtCenter();
+  }
+
   function applyMotionTilt(gamma, beta) {
     if (!width || !height) return;
 
+    if (motionCalibrating) {
+      motionCalibrationBuffer.push({ gamma, beta });
+      if (motionCalibrationBuffer.length >= MOTION_CALIBRATION_SAMPLES) {
+        finishMotionCalibration();
+      }
+      holdSpotlightAtCenter();
+      return;
+    }
+
     if (motionBaseline === null) {
       motionBaseline = { gamma, beta };
+      holdSpotlightAtCenter();
+      return;
     }
 
     const dGamma = gamma - motionBaseline.gamma;
@@ -524,24 +573,57 @@
     return { gamma, beta };
   }
 
+  function resolveMotionGamma(orientationGamma) {
+    const gravityGamma = motionGammaFromGravity;
+    const hasGravityGamma = gravityGamma != null && !Number.isNaN(gravityGamma);
+
+    if (isIosDevice && hasGravityGamma) {
+      if (orientationGamma == null || Number.isNaN(orientationGamma)) {
+        return gravityGamma;
+      }
+      // iOS often reports 0 gamma while the accelerometer still sees roll.
+      if (Math.abs(orientationGamma) < 0.01) {
+        return gravityGamma;
+      }
+    }
+
+    if (orientationGamma != null && !Number.isNaN(orientationGamma)) {
+      return orientationGamma;
+    }
+    return hasGravityGamma ? gravityGamma : null;
+  }
+
+  function emitMotionTiltFromSensors(orientationGamma, beta) {
+    if (beta == null || Number.isNaN(beta)) return;
+    const gamma = resolveMotionGamma(orientationGamma);
+    if (gamma == null || Number.isNaN(gamma)) return;
+    applyMotionTilt(gamma, beta);
+  }
+
   function handleDeviceOrientation(e) {
     if (!motionEnabled) return;
-    if (e.gamma == null || e.beta == null) return;
-    lastOrientationEventAt = performance.now();
-    applyMotionTilt(e.gamma, e.beta);
+    if (e.beta == null || Number.isNaN(e.beta)) return;
+    latestOrientationGamma = e.gamma;
+    latestOrientationBeta = e.beta;
+    emitMotionTiltFromSensors(e.gamma, e.beta);
   }
 
   function handleDeviceMotion(e) {
     if (!motionEnabled || !isIosDevice) return;
-    if (performance.now() - lastOrientationEventAt < 400) return;
     const g = e.accelerationIncludingGravity;
     if (!g || g.x == null || g.y == null || g.z == null) return;
-    const { gamma, beta } = tiltFromGravity(g.x, g.y, g.z);
-    applyMotionTilt(gamma, beta);
+    motionGammaFromGravity = tiltFromGravity(g.x, g.y, g.z).gamma;
+    if (latestOrientationBeta != null) {
+      emitMotionTiltFromSensors(latestOrientationGamma, latestOrientationBeta);
+    }
   }
 
   function resetMotionBaseline() {
-    motionBaseline = null;
+    if (!motionEnabled) {
+      motionBaseline = null;
+      return;
+    }
+    beginMotionCalibration();
   }
 
   function motionRequiresUserGesture() {
@@ -581,8 +663,7 @@
       window.addEventListener('devicemotion', handleDeviceMotion, true);
     }
     motionEnabled = true;
-    resetMotionBaseline();
-    initMobileSpotlight();
+    beginMotionCalibration();
     hideMotionPrompt();
   }
 
