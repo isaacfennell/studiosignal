@@ -1,12 +1,29 @@
 # Studio Signal
 
-> From brand positioning to launch day, we build the whole picture. Studio Signal is a UK brand and website studio helping purpose-led organisations cut through the digital noise.
+> From brand positioning to launch day and beyond, we build the whole picture. Studio Signal is a UK brand and web studio enabling purpose-led organisations to cut through the digital noise.
 
 Specialist UK brand and web studio. Enquiries: hi@studiosignal.co.uk
 
 ## Site
 
-- [Home](https://studiosignal.co.uk/): Studio positioning, contact, and social links.
+- [Home](https://studiosignal.co.uk/): Studio positioning, interactive brand moment, contact, and social links.
+
+## Latest project — kinspace
+
+Studio Signal led **brand and website** for [kinspace](https://kinspace.co.uk/), a UK workplace design and office fit-out consultancy.
+
+**About kinspace:** They design and build workplaces where people thrive — leading with people and prioritising feeling, not purely function. The name pairs *kin* (teams, shared purpose) with *space* (physical, functional, emotional). Services span workplace consultancy, office interior design, refurbishment, design and build, and relocation, delivered with one team and one point of contact. They work with businesses across London, Manchester, Birmingham, Reading, and beyond.
+
+**Site highlights:**
+
+- [Home](https://kinspace.co.uk/): Hero film, positioning, recent project showcase, and routes into services.
+- [About us](https://kinspace.co.uk/about-us): Purpose, culture, and how kinspace thinks about workplace experience.
+- [Services](https://kinspace.co.uk/services): End-to-end workplace services from strategy through to delivery.
+- [Projects](https://kinspace.co.uk/projects): Case studies including major fit-outs (e.g. CBRE Birmingham, Cooper Parry, Cundall).
+- [Journal](https://kinspace.co.uk/journal): Practical guides on layout, wellbeing, and workplace experience.
+- [Contact](https://kinspace.co.uk/contact): Enquiries and conversation starters.
+
+**Notable context:** kinspace’s own Birmingham studio — *The Home of Spaces + Stories* — is a ~2,100 sq ft fit-out inside a Grade II listed building at Coleshill Manor; the site reflects the same people-first, design-led approach they deliver for clients.
 
 ## Policies
 
