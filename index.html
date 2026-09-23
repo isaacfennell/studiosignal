@@ -369,7 +369,7 @@
     let logoW = isMobileLayout
       ? Math.min(Math.max(0, width - LOGO_INSET_MOBILE * 2), LOGO_MAX_WIDTH)
       : Math.min(width * LOGO_WIDTH_RATIO, LOGO_MAX_WIDTH);
-    if (motionLayer) {
+    if (isMobileLayout) {
       logoW *= MOTION_LOGO_ZOOM_MOBILE;
     }
     const aspect = bgLogoImg.naturalHeight / bgLogoImg.naturalWidth;
@@ -404,7 +404,7 @@
     const focalX = logoLayerPadX + centerX;
     const focalY = logoLayerPadY + centerY;
     const drawX = focalX - logoW / 2;
-    const drawY = motionLayer
+    const drawY = isMobileLayout
       ? focalY - LOGO_MOTION_ANCHOR_Y * logoH
       : focalY - logoH / 2;
     lctx.drawImage(bgLogoImg, drawX, drawY, logoW, logoH);
