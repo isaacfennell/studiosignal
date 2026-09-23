@@ -207,13 +207,17 @@
 
   // --- config ---------------------------------------------------------
   const LOGO_WIDTH_RATIO = 1.1;      // logo layer fills 110% of the hero width on desktop
-  const LOGO_WIDTH_RATIO_MOBILE = 1.0; // fills the viewport width on mobile without bleeding past the edges
+  const LOGO_INSET_MOBILE = 10;        // px — gap from each viewport edge on mobile
   const MOBILE_BREAKPOINT = 640;     // px
   const LOGO_MAX_WIDTH = 800;         // px — cap on the logo layer's width
-  const MAX_OPACITY = 0.95;          // opacity right under the cursor
-  const REVEAL_RADIUS_MIN = 170;     // px — searchlight size floor, on narrow/mobile viewports
+  const MAX_OPACITY = 1;             // opacity at the centre of the beam
+  const REVEAL_RADIUS_MIN = 170;     // px — searchlight floor on desktop-width viewports
   const REVEAL_RADIUS_MAX = 340;     // px — searchlight size ceiling, on wide desktop viewports
   const REVEAL_RADIUS_VW = 0.18;     // preferred size as a share of the hero's width, like clamp()'s middle arg
+  const REVEAL_RADIUS_VW_MOBILE = 0.28; // mobile scales with viewport — avoids the desktop min blowing up the beam
+  const REVEAL_RADIUS_MIN_MOBILE = 88;
+  const REVEAL_RADIUS_MAX_MOBILE = 200;
+  const REVEAL_CORE_FRACTION = 0.14; // share of radius that stays fully opaque before falloff
   const POINTER_EASE = 0.14;         // 0..1, how quickly the glow follows the mouse/finger
   const GROWTH_ON_MOVE = 0.15;       // spotlight grows up to 15% while actively moving
   const SPEED_FOR_MAX_GROWTH = 35;   // px/move-event needed to hit full growth
@@ -272,8 +276,18 @@
     canvas.style.width = width + 'px';
     canvas.style.height = height + 'px';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    revealRadius = Math.min(REVEAL_RADIUS_MAX, Math.max(REVEAL_RADIUS_MIN, width * REVEAL_RADIUS_VW));
+    revealRadius = computeRevealRadius(width);
     buildLogoLayer();
+  }
+
+  function computeRevealRadius(w) {
+    if (w < MOBILE_BREAKPOINT) {
+      return Math.min(
+        REVEAL_RADIUS_MAX_MOBILE,
+        Math.max(REVEAL_RADIUS_MIN_MOBILE, w * REVEAL_RADIUS_VW_MOBILE)
+      );
+    }
+    return Math.min(REVEAL_RADIUS_MAX, Math.max(REVEAL_RADIUS_MIN, w * REVEAL_RADIUS_VW));
   }
 
   function buildLogoLayer() {
@@ -285,8 +299,10 @@
     const lctx = logoLayer.getContext('2d');
     lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const widthRatio = width < MOBILE_BREAKPOINT ? LOGO_WIDTH_RATIO_MOBILE : LOGO_WIDTH_RATIO;
-    const logoW = Math.min(width * widthRatio, LOGO_MAX_WIDTH);
+    const isMobileLayout = width < MOBILE_BREAKPOINT;
+    const logoW = isMobileLayout
+      ? Math.min(Math.max(0, width - LOGO_INSET_MOBILE * 2), LOGO_MAX_WIDTH)
+      : Math.min(width * LOGO_WIDTH_RATIO, LOGO_MAX_WIDTH);
     const logoH = logoW * (bgLogoImg.naturalHeight / bgLogoImg.naturalWidth);
     lctx.drawImage(bgLogoImg, centerX - logoW / 2, centerY - logoH / 2, logoW, logoH);
   }
@@ -298,9 +314,12 @@
       updateRoam(performance.now());
     }
 
-    const pointerEase = (isTouchDevice && !isUserTouching)
-      ? (roamPhase === 'travel' ? POINTER_EASE_ROAM_TRAVEL : POINTER_EASE_ROAM_DWELL)
-      : POINTER_EASE;
+    let pointerEase = POINTER_EASE;
+    if (isUserTouching) {
+      pointerEase = 0.32;
+    } else if (isTouchDevice) {
+      pointerEase = roamPhase === 'travel' ? POINTER_EASE_ROAM_TRAVEL : POINTER_EASE_ROAM_DWELL;
+    }
 
     // ease the glow position toward the pointer for a gentle trailing feel
     if (targetX !== null) {
@@ -331,7 +350,13 @@
       // hand-picked stops, which read as visible rings where the slope kinked
       for (let i = 0; i <= GRADIENT_STOPS; i++) {
         const t = i / GRADIENT_STOPS;
-        const alpha = 0.5 * (1 + Math.cos(Math.PI * t));
+        let alpha;
+        if (t <= REVEAL_CORE_FRACTION) {
+          alpha = 1;
+        } else {
+          const u = (t - REVEAL_CORE_FRACTION) / (1 - REVEAL_CORE_FRACTION);
+          alpha = 0.5 * (1 + Math.cos(Math.PI * u));
+        }
         grad.addColorStop(t, `rgba(255,255,255,${alpha})`);
       }
       ctx.fillStyle = grad;
@@ -342,8 +367,9 @@
     requestAnimationFrame(render);
   }
 
-  function updateTarget(newX, newY) {
-    if (targetX !== null) {
+  function updateTarget(newX, newY, opts) {
+    const trackSpeed = !opts || opts.trackSpeed !== false;
+    if (trackSpeed && targetX !== null) {
       const dx = newX - targetX;
       const dy = newY - targetY;
       moveSpeed = Math.max(moveSpeed, Math.sqrt(dx * dx + dy * dy));
@@ -467,7 +493,7 @@
       const r = ROAM_SEARCH_RADIUS * (0.6 + 0.4 * Math.sin(t * 0.18));
       const searchX = roamAnchorX + Math.cos(phase) * r + Math.sin(phase * 1.6) * r * 0.22;
       const searchY = roamAnchorY + Math.sin(phase * 0.82) * r * 0.88;
-      updateTarget(searchX + tremor.x, searchY + tremor.y);
+      updateTarget(searchX + tremor.x, searchY + tremor.y, { trackSpeed: false });
       return;
     }
 
