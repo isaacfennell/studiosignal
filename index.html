@@ -275,6 +275,7 @@
   const MOTION_MARGIN = 0.12;        // keep the beam off the viewport edges
   const MOTION_GAMMA_RANGE = 21.5;   // degrees for full horizontal travel (+30% sensitivity vs 28)
   const MOTION_BETA_RANGE = 16.9;    // degrees for full vertical travel (+30% sensitivity vs 22)
+  const MOTION_PAN_GAIN_X = 1.28;    // horizontal tilt reaches pan limits slightly faster than vertical
   const MOTION_CALIBRATION_SAMPLES = 10; // average first samples so mixed sensor frames do not yank the beam
   const MOTION_LOGO_ZOOM_MOBILE = 1.65; // headroom for pan without cropping the mark off-layer
   const LOGO_LAYER_BLEED = 16;       // px padding so the full SVG is drawable inside the pan layer
@@ -376,14 +377,14 @@
     let layerHeight = height;
 
     if (motionLayer) {
-      const overflowX = Math.max(0, (logoW - width) / 2);
       const overflowY = Math.max(0, (logoH - height) / 2);
-      logoLayerPadX = Math.ceil(overflowX + LOGO_LAYER_BLEED);
+      // Beam is centred: bring each logo edge under the torch, not just to the screen edge.
+      const panHalfWidth = logoW / 2;
+      logoLayerPadX = Math.ceil(panHalfWidth + LOGO_LAYER_BLEED);
       logoLayerPadY = Math.ceil(overflowY + LOGO_LAYER_BLEED);
       layerWidth = width + logoLayerPadX * 2;
       layerHeight = height + logoLayerPadY * 2;
-      // Tilt travel matches how far we can slide the viewport across the full logo width/height.
-      logoPanLimitX = overflowX;
+      logoPanLimitX = panHalfWidth;
       logoPanLimitY = overflowY;
     } else {
       logoPanLimitX = 0;
@@ -662,7 +663,7 @@
     const maxDx = logoPanLimitX > 0 ? logoPanLimitX : width * (0.5 - MOTION_MARGIN);
     const maxDy = logoPanLimitY > 0 ? logoPanLimitY : height * (0.5 - MOTION_MARGIN);
     // First-person pan: fixed beam, logo shifts opposite to head tilt (up/left → logo down/right).
-    const panX = (dGamma / MOTION_GAMMA_RANGE) * maxDx;
+    const panX = (dGamma / MOTION_GAMMA_RANGE) * maxDx * MOTION_PAN_GAIN_X;
     const panY = (dBeta / MOTION_BETA_RANGE) * maxDy;
     const pan = clampLogoPan(panX, panY);
     updateLogoPan(pan.x, pan.y);
