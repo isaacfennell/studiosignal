@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Signal</title>
+<meta name="description" content="From brand positioning to launch day, we build the whole picture. Studio Signal is a UK brand and website studio helping purpose-led organisations cut through the digital noise.">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://use.typekit.net" crossorigin>
+<link rel="preconnect" href="https://p.typekit.net" crossorigin>
+<link rel="stylesheet" href="https://use.typekit.net/vxi4vqw.css">
+<link rel="preload" href="assets/logo.svg" as="image" fetchpriority="high">
+<style>
+  :root {
+    --bg: #101010;
+    --fg: #FFFCF5;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    height: 100%;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .hero {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    height: 100svh;
+    overflow: hidden;
+  }
+
+  .hero canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .layout {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "header-left  header-right"
+      "spot         spot"
+      "footer-left  footer-right";
+    padding: 40px;
+    pointer-events: none;
+  }
+
+  .layout a {
+    pointer-events: auto;
+  }
+
+  .eyebrow, .nav-link, .enquiries {
+    font-family: "zuume", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: normal;
+    text-transform: uppercase;
+    color: var(--fg);
+    text-decoration: none;
+  }
+
+  .nav-link, .enquiries a {
+    color: var(--fg);
+    text-decoration: none;
+    transition: color 300ms ease;
+  }
+
+  .nav-link:hover {
+    color: #C8F3FA;
+  }
+
+  .enquiries a {
+    color: #C8F3FA;
+  }
+
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .nav-link svg {
+    flex: none;
+  }
+
+  .header-left { grid-area: header-left; justify-self: start; align-self: start; }
+
+  .header-right {
+    grid-area: header-right;
+    justify-self: end;
+    align-self: start;
+    text-align: right;
+  }
+
+  .footer-left {
+    grid-area: footer-left;
+    justify-self: start;
+    align-self: end;
+    display: flex;
+    gap: 28px;
+  }
+
+  .footer-right {
+    grid-area: footer-right;
+    justify-self: end;
+    align-self: end;
+    text-align: right;
+    pointer-events: auto;
+  }
+
+  .email-wrap {
+    position: relative;
+    display: inline-block;
+  }
+
+  .email-motif {
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    transform: translateX(-50%);
+    margin-bottom: -2px;
+    width: 34px;
+    height: auto;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 300ms ease;
+  }
+
+  .email-wrap:hover .email-motif {
+    opacity: 1;
+    transition: opacity 100ms ease;
+  }
+
+  @media (max-width: 640px) {
+    .layout {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr auto auto auto;
+      grid-template-areas:
+        "header-left"
+        "spot"
+        "header-right"
+        "footer-right"
+        "footer-left";
+      padding: 24px;
+      row-gap: 1.25rem;
+    }
+
+    .header-right,
+    .footer-left,
+    .footer-right {
+      justify-self: start;
+      text-align: left;
+    }
+  }
+</style>
+</head>
+<body>
+
+<section class="hero" id="hero">
+  <canvas id="sunCanvas"></canvas>
+  <div class="layout">
+    <div class="eyebrow header-left">We are Studio Signal</div>
+    <div class="eyebrow header-right">Specialist UK brand &amp; web studio</div>
+    <div class="footer-left">
+      <a class="nav-link" href="#" target="_blank" rel="noopener">Insta<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
+      <a class="nav-link" href="#" target="_blank" rel="noopener">LinkedIn<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
+    </div>
+    <div class="enquiries footer-right">
+      Enquiries: <span class="email-wrap"><svg class="email-motif" width="50" height="29" viewBox="0 0 50 29" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M24.2636 24.5943L2.20656 14.2852L4.13301 10.9684L24.2636 24.5943Z" fill="#FFD16B"/>
+        <path d="M24.2652 24.5951L7.07787 7.48902L10.0397 5.02565L24.2652 24.5951Z" fill="#FFD16B"/>
+        <path d="M24.2632 24.595L14.0167 2.75554L17.6617 1.44547L24.2632 24.595Z" fill="#FFD16B"/>
+        <path d="M24.2648 24.5941L22.1955 0.655979L26.0808 0.654614L24.2648 24.5941Z" fill="#FFD16B"/>
+        <path d="M24.2656 24.5945L30.6231 1.44331L34.2807 2.75389L24.2656 24.5945Z" fill="#FFD16B"/>
+        <path d="M24.2674 24.5945L38.2859 5.02406L41.2742 7.48547L24.2674 24.5945Z" fill="#FFD16B"/>
+        <path d="M24.2665 24.5957L44.2545 10.9647L46.2151 14.2824L24.2665 24.5957Z" fill="#FFD16B"/>
+        <path d="M24.265 24.5942L47.8119 18.5495L48.5059 22.321L24.265 24.5942Z" fill="#FFD16B"/>
+        <path d="M24.2645 24.5962L0.654002 18.5554L-0.000678913 22.3272L24.2645 24.5962Z" fill="#FFD16B"/>
+      </svg><a href="mailto:hi@studiosignal.co.uk">hi@studiosignal.co.uk</a></span>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  const hero = document.getElementById('hero');
+  const canvas = document.getElementById('sunCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // --- config ---------------------------------------------------------
+  const LOGO_WIDTH_RATIO = 1.1;      // logo layer fills 110% of the hero width on desktop
+  const LOGO_WIDTH_RATIO_MOBILE = 1.0; // fills the viewport width on mobile without bleeding past the edges
+  const MOBILE_BREAKPOINT = 640;     // px
+  const LOGO_MAX_WIDTH = 800;         // px — cap on the logo layer's width
+  const MAX_OPACITY = 0.95;          // opacity right under the cursor
+  const REVEAL_RADIUS_MIN = 170;     // px — searchlight size floor, on narrow/mobile viewports
+  const REVEAL_RADIUS_MAX = 340;     // px — searchlight size ceiling, on wide desktop viewports
+  const REVEAL_RADIUS_VW = 0.18;     // preferred size as a share of the hero's width, like clamp()'s middle arg
+  const POINTER_EASE = 0.14;         // 0..1, how quickly the glow follows the mouse/finger
+  const GROWTH_ON_MOVE = 0.15;       // spotlight grows up to 15% while actively moving
+  const SPEED_FOR_MAX_GROWTH = 35;   // px/move-event needed to hit full growth
+  const GRADIENT_STOPS = 16;         // samples along the spotlight's falloff curve — higher = smoother
+  const ROAM_MARGIN = 0.14;          // auto-search stays within this margin of the edges
+  const ROAM_MIN_INTERVAL = 2600;    // ms between auto-search waypoints
+  const ROAM_MAX_INTERVAL = 4200;
+  const isTouchDevice = matchMedia('(hover: none)').matches; // no cursor to follow — search automatically instead
+  let dpr = Math.min(window.devicePixelRatio || 1, 2);
+  let width = 0, height = 0;
+  let centerX = 0, centerY = 0;
+  let logoLayer = null; // offscreen canvas holding the oversized, static logo mark
+
+  const bgLogoImg = new Image();
+  let bgLogoLoaded = false;
+  bgLogoImg.onload = () => { bgLogoLoaded = true; buildLogoLayer(); };
+  bgLogoImg.src = 'assets/logo.svg';
+
+  // target = raw pointer position, current = eased position the render loop follows
+  let targetX = null, targetY = null;
+  let currentX = null, currentY = null;
+  let pointerActive = false;
+  let fadeOut = 0; // 1 = fully visible glow, 0 = pointer has left
+  let revealAlpha = 0; // eased reveal strength, follows fadeOut
+  let moveSpeed = 0; // decays each frame, spikes on pointer movement
+  let radiusScale = 1; // eased 1..1+GROWTH_ON_MOVE, driven by moveSpeed
+  let revealRadius = REVEAL_RADIUS_MIN; // clamp(MIN, width * VW, MAX), recalculated on resize
+  let isUserTouching = false; // a finger is currently down — pause auto-search and follow it directly
+  let roamTimer = null;
+
+  function resize() {
+    const rect = hero.getBoundingClientRect();
+    width = rect.width;
+    height = rect.height;
+    centerX = width / 2;
+    centerY = height / 2;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    revealRadius = Math.min(REVEAL_RADIUS_MAX, Math.max(REVEAL_RADIUS_MIN, width * REVEAL_RADIUS_VW));
+    buildLogoLayer();
+  }
+
+  function buildLogoLayer() {
+    if (!bgLogoLoaded || !width || !height) return;
+
+    logoLayer = document.createElement('canvas');
+    logoLayer.width = canvas.width;
+    logoLayer.height = canvas.height;
+    const lctx = logoLayer.getContext('2d');
+    lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const widthRatio = width < MOBILE_BREAKPOINT ? LOGO_WIDTH_RATIO_MOBILE : LOGO_WIDTH_RATIO;
+    const logoW = Math.min(width * widthRatio, LOGO_MAX_WIDTH);
+    const logoH = logoW * (bgLogoImg.naturalHeight / bgLogoImg.naturalWidth);
+    lctx.drawImage(bgLogoImg, centerX - logoW / 2, centerY - logoH / 2, logoW, logoH);
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, width, height);
+
+    // ease the glow position toward the pointer for a gentle trailing feel
+    if (targetX !== null) {
+      if (currentX === null) { currentX = targetX; currentY = targetY; }
+      currentX += (targetX - currentX) * POINTER_EASE;
+      currentY += (targetY - currentY) * POINTER_EASE;
+    }
+
+    // fade the whole glow in/out as the pointer enters/leaves the hero
+    const fadeTarget = pointerActive ? 1 : 0;
+    fadeOut += (fadeTarget - fadeOut) * 0.09;
+    revealAlpha += (fadeOut - revealAlpha) * 0.18;
+
+    // grow the spotlight while actively moving, shrink back when it settles
+    moveSpeed *= 0.85;
+    const growthTarget = 1 + GROWTH_ON_MOVE * Math.min(1, moveSpeed / SPEED_FOR_MAX_GROWTH);
+    radiusScale += (growthTarget - radiusScale) * 0.15;
+
+    if (currentX !== null && revealAlpha > 0.002 && logoLayer) {
+      ctx.save();
+      ctx.globalAlpha = MAX_OPACITY * revealAlpha;
+      ctx.drawImage(logoLayer, 0, 0, width, height);
+
+      // soft-edged circular spotlight mask
+      ctx.globalCompositeOperation = 'destination-in';
+      const grad = ctx.createRadialGradient(currentX, currentY, 0, currentX, currentY, revealRadius * radiusScale);
+      // sample a smooth cosine falloff (1 -> 0, easing at both ends) instead of a few
+      // hand-picked stops, which read as visible rings where the slope kinked
+      for (let i = 0; i <= GRADIENT_STOPS; i++) {
+        const t = i / GRADIENT_STOPS;
+        const alpha = 0.5 * (1 + Math.cos(Math.PI * t));
+        grad.addColorStop(t, `rgba(255,255,255,${alpha})`);
+      }
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
+      ctx.restore();
+    }
+
+    requestAnimationFrame(render);
+  }
+
+  function updateTarget(newX, newY) {
+    if (targetX !== null) {
+      const dx = newX - targetX;
+      const dy = newY - targetY;
+      moveSpeed = Math.max(moveSpeed, Math.sqrt(dx * dx + dy * dy));
+    }
+    targetX = newX;
+    targetY = newY;
+    pointerActive = true;
+  }
+
+  function handlePointerMove(e) {
+    const rect = hero.getBoundingClientRect();
+    updateTarget(e.clientX - rect.left, e.clientY - rect.top);
+  }
+
+  function handlePointerLeave() {
+    pointerActive = false;
+  }
+
+  function handleTouch(e) {
+    if (!e.touches || !e.touches[0]) return;
+    isUserTouching = true;
+    const rect = hero.getBoundingClientRect();
+    updateTarget(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+  }
+
+  function handleTouchEnd() {
+    isUserTouching = false;
+    if (isTouchDevice) {
+      // hand control back to the auto-search, picking up smoothly from wherever the finger left off
+      clearTimeout(roamTimer);
+      roamStep();
+    } else {
+      pointerActive = false;
+    }
+  }
+
+  // --- auto-search (touch devices only) --------------------------------
+  // there's no cursor to reveal the logo on mobile, so wander the spotlight
+  // around the screen on its own; a real touch always takes priority.
+  function roamStep() {
+    if (!isUserTouching && width && height) {
+      const x = width * (ROAM_MARGIN + Math.random() * (1 - ROAM_MARGIN * 2));
+      const y = height * (ROAM_MARGIN + Math.random() * (1 - ROAM_MARGIN * 2));
+      updateTarget(x, y);
+    }
+    const delay = ROAM_MIN_INTERVAL + Math.random() * (ROAM_MAX_INTERVAL - ROAM_MIN_INTERVAL);
+    roamTimer = setTimeout(roamStep, delay);
+  }
+
+  window.addEventListener('resize', resize);
+  hero.addEventListener('mousemove', handlePointerMove);
+  hero.addEventListener('mouseleave', handlePointerLeave);
+  // touchstart reveals immediately on tap/hold, not just once the finger starts dragging
+  hero.addEventListener('touchstart', handleTouch, { passive: true });
+  hero.addEventListener('touchmove', handleTouch, { passive: true });
+  hero.addEventListener('touchend', handleTouchEnd);
+  hero.addEventListener('touchcancel', handleTouchEnd);
+
+  resize();
+  requestAnimationFrame(render);
+  if (isTouchDevice) roamStep();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,14 @@
+# Studio Signal
+
+> From brand positioning to launch day, we build the whole picture. Studio Signal is a UK brand and website studio helping purpose-led organisations cut through the digital noise.
+
+Specialist UK brand and web studio. Enquiries: hi@studiosignal.co.uk
+
+## Site
+
+- [Home](https://studiosignal.co.uk/): Studio positioning, contact, and social links.
+
+## Policies
+
+- [Crawler rules](https://studiosignal.co.uk/robots.txt): Which paths may be fetched.
+- [LLM index](https://studiosignal.co.uk/llms.txt): This file.
