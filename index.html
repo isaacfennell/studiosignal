@@ -183,6 +183,51 @@
   .motion-prompt__btn:disabled {
     cursor: wait;
   }
+
+  .pan-tip {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + min(28vw, 7.5rem));
+    transform: translate(-50%, 0);
+    z-index: 4;
+    margin: 0;
+    padding: 0 1rem;
+    max-width: min(18rem, 88vw);
+    pointer-events: none;
+    text-align: center;
+    font-family: "zuume", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.35;
+    text-transform: uppercase;
+    color: var(--fg);
+    opacity: 0;
+  }
+
+  .pan-tip[hidden] {
+    display: none;
+  }
+
+  .pan-tip.is-flashing {
+    display: block;
+    animation: pan-tip-soft-flash 4.2s ease-in-out forwards;
+  }
+
+  @keyframes pan-tip-soft-flash {
+    0%, 100% { opacity: 0; }
+    12%, 28% { opacity: 0.72; }
+    42% { opacity: 0.28; }
+    58%, 74% { opacity: 0.58; }
+    88% { opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pan-tip.is-flashing {
+      animation: none;
+      opacity: 0.65;
+    }
+  }
 </style>
 </head>
 <body>
@@ -192,6 +237,7 @@
   <div class="motion-prompt" id="motionPrompt" hidden>
     <button type="button" class="motion-prompt__btn" id="motionPromptBtn" aria-label="Enable motion control"></button>
   </div>
+  <p class="pan-tip" id="panTip" role="status" aria-live="polite" hidden></p>
   <div class="layout">
     <div class="eyebrow header-left">We are Studio Signal</div>
     <div class="eyebrow header-right">Branding + web that lights the way</div>
@@ -212,6 +258,7 @@
   const ctx = canvas.getContext('2d');
   const motionPrompt = document.getElementById('motionPrompt');
   const motionPromptBtn = document.getElementById('motionPromptBtn');
+  const panTipEl = document.getElementById('panTip');
 
   // --- config ---------------------------------------------------------
   const LOGO_WIDTH_RATIO = 1.1;      // logo layer fills 110% of the hero width on desktop
@@ -247,6 +294,12 @@
   const LOGO_LAYER_BLEED = 16;       // px padding so the full SVG is drawable inside the pan layer
   const LOGO_MOTION_ANCHOR_Y = 168.5 / 287; // viewBox Y below the STUDIO/SIGNAL row gap (not geometric centre)
   const POINTER_EASE_MOTION = 0.2;   // how quickly the beam follows tilt
+  const PAN_TIP_IDLE_MS = 4000;
+  const PAN_TIP_MOVE_THRESHOLD = 18; // px — max logo pan from centre in the idle window
+  const PAN_TIP_COPY = {
+    motion: 'Tilt your phone to light the way',
+    touch: 'Drag to light the way',
+  };
   const isTouchDevice = matchMedia('(hover: none)').matches; // mobile: centre beam + device tilt
   const isIosDevice = (() => {
     if (typeof navigator === 'undefined') return false;
@@ -299,6 +352,10 @@
   let logoLayerPadY = 0;
   let logoPanLimitX = 0;
   let logoPanLimitY = 0;
+  let panTipIdleSince = 0;
+  let panTipMaxDisplacement = 0;
+  let panTipShown = false;
+  let panTipFlashing = false;
 
   function resize() {
     const rect = hero.getBoundingClientRect();
@@ -466,6 +523,8 @@
       prevLogoPanY = logoPanCurrentY;
     }
 
+    updatePanTipIdle();
+
     // grow the spotlight while actively moving, shrink back when it settles
     moveSpeed *= 0.85;
     const growthOnMove = isMobileLayout ? GROWTH_ON_MOVE_MOBILE : GROWTH_ON_MOVE;
@@ -587,6 +646,86 @@
   function hideMotionPrompt() {
     if (!motionPrompt) return;
     motionPrompt.hidden = true;
+  }
+
+  function panTipEligibleLayout() {
+    return width > 0 && width < MOBILE_BREAKPOINT;
+  }
+
+  function panTipContextKind() {
+    if (motionEnabled) return 'motion';
+    if (touchPanEnabled) return 'touch';
+    return null;
+  }
+
+  function panTipTrackingActive() {
+    return panTipEligibleLayout() && mobilePanActive() && panTipContextKind() !== null;
+  }
+
+  function logoPanDisplacement() {
+    const current = Math.hypot(logoPanCurrentX, logoPanCurrentY);
+    const target = Math.hypot(logoPanTargetX, logoPanTargetY);
+    return Math.max(current, target);
+  }
+
+  function resetPanTipIdleClock() {
+    panTipIdleSince = performance.now();
+    panTipMaxDisplacement = 0;
+  }
+
+  function hidePanTip() {
+    if (!panTipEl || panTipEl.hidden) return;
+    panTipEl.classList.remove('is-flashing');
+    panTipEl.hidden = true;
+    panTipFlashing = false;
+  }
+
+  function showPanTip(kind) {
+    if (!panTipEl || panTipShown || panTipFlashing) return;
+    const copy = PAN_TIP_COPY[kind];
+    if (!copy) return;
+    panTipShown = true;
+    panTipFlashing = true;
+    panTipEl.textContent = copy;
+    panTipEl.hidden = false;
+    panTipEl.classList.remove('is-flashing');
+    void panTipEl.offsetWidth;
+    panTipEl.classList.add('is-flashing');
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      window.setTimeout(() => {
+        panTipFlashing = false;
+        hidePanTip();
+      }, 2800);
+    } else {
+      panTipEl.addEventListener('animationend', () => {
+        panTipFlashing = false;
+        hidePanTip();
+      }, { once: true });
+    }
+  }
+
+  function updatePanTipIdle() {
+    if (panTipShown) return;
+    if (!panTipTrackingActive()) {
+      panTipIdleSince = 0;
+      panTipMaxDisplacement = 0;
+      return;
+    }
+    if (motionEnabled && motionCalibrating) {
+      resetPanTipIdleClock();
+      return;
+    }
+    if (!panTipIdleSince) resetPanTipIdleClock();
+
+    panTipMaxDisplacement = Math.max(panTipMaxDisplacement, logoPanDisplacement());
+    if (panTipMaxDisplacement >= PAN_TIP_MOVE_THRESHOLD) {
+      resetPanTipIdleClock();
+      return;
+    }
+
+    if (performance.now() - panTipIdleSince >= PAN_TIP_IDLE_MS) {
+      showPanTip(panTipContextKind());
+    }
   }
 
   function handleTouchStart(e) {
@@ -714,6 +853,7 @@
     buildLogoLayer();
     initMobileSpotlight();
     hideMotionPrompt();
+    resetPanTipIdleClock();
   }
 
   function applyMotionTilt(gamma, beta) {
@@ -870,6 +1010,7 @@
     buildLogoLayer();
     beginMotionCalibration();
     hideMotionPrompt();
+    resetPanTipIdleClock();
   }
 
   async function activateMotionFromUserClick() {
