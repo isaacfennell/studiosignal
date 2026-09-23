@@ -4,13 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Studio Signal</title>
-<meta name="description" content="From brand positioning to launch day, we build the whole picture. Studio Signal is a UK brand and website studio helping purpose-led organisations cut through the digital noise.">
+<meta name="description" content="From brand positioning to launch day, we build the whole picture. Studio Signal is a UK brand and web studio enabling purpose-led organisations to cut through the digital noise.">
 <link rel="icon" href="assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://use.typekit.net" crossorigin>
 <link rel="preconnect" href="https://p.typekit.net" crossorigin>
 <link rel="stylesheet" href="https://use.typekit.net/vxi4vqw.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Funnel+Sans:wght@400&display=swap" rel="stylesheet">
 <link rel="preload" href="assets/logo.svg" as="image" fetchpriority="high">
 <style>
   :root {
@@ -155,9 +158,10 @@
 
   .motion-prompt {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 3;
     pointer-events: none;
   }
@@ -167,21 +171,113 @@
   }
 
   .motion-prompt__btn {
-    display: block;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     margin: 0;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    background: transparent;
-    color: transparent;
+    padding: 10px 24px;
+    transform: scale(1);
+    opacity: 1;
+    transition: opacity 420ms ease, transform 420ms ease;
+    border: 1px solid transparent;
+    border-radius: 100px;
+    background:
+      linear-gradient(rgba(255, 252, 245, 0.03), rgba(255, 252, 245, 0.03)) padding-box,
+      linear-gradient(
+        180deg,
+        rgba(255, 252, 245, 0.72) 0%,
+        rgba(255, 252, 245, 0.38) 42%,
+        rgba(255, 252, 245, 0.08) 100%
+      ) border-box;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 252, 245, 0.06),
+      inset 1px 1px 0 rgba(255, 252, 245, 0.12),
+      inset -1px -1px 0 rgba(0, 0, 0, 0.2);
+    color: var(--fg);
+    font-family: "Funnel Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    white-space: nowrap;
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     pointer-events: auto;
+    overflow: hidden;
+    isolation: isolate;
   }
 
-  .motion-prompt__btn:disabled {
+  /* Frost — clipped inside the pill, not on the gradient border */
+  .motion-prompt__btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: rgba(255, 252, 245, 0.04);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    clip-path: inset(0 round 100px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Specular highlight + inner rim fade toward centre */
+  .motion-prompt__btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+      linear-gradient(
+        135deg,
+        rgba(255, 252, 245, 0.22) 0%,
+        rgba(255, 252, 245, 0.05) 38%,
+        transparent 58%
+      ),
+      radial-gradient(
+        120% 90% at 50% 50%,
+        transparent 58%,
+        rgba(255, 252, 245, 0.14) 78%,
+        rgba(255, 252, 245, 0.28) 100%
+      );
+    opacity: 0.85;
+    clip-path: inset(0 round 100px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .motion-prompt__label {
+    position: relative;
+    z-index: 1;
+  }
+
+  .motion-prompt__btn:disabled:not(.is-dismissing) {
     cursor: wait;
+    opacity: 0.72;
+  }
+
+  .motion-prompt__btn.is-dismissing {
+    opacity: 0;
+    transform: scale(0.9);
+    pointer-events: none;
+    cursor: default;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .motion-prompt__btn {
+      transition: opacity 220ms ease;
+    }
+
+    .motion-prompt__btn.is-dismissing {
+      transform: scale(1);
+    }
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .motion-prompt__btn::before {
+      background: rgba(32, 32, 32, 0.88);
+    }
   }
 
   .pan-tip {
@@ -235,12 +331,14 @@
 <section class="hero" id="hero">
   <canvas id="sunCanvas"></canvas>
   <div class="motion-prompt" id="motionPrompt" hidden>
-    <button type="button" class="motion-prompt__btn" id="motionPromptBtn" aria-label="Enable motion control"></button>
+    <button type="button" class="motion-prompt__btn" id="motionPromptBtn" aria-label="Tap and tilt to enable motion control">
+      <span class="motion-prompt__label">Tap and tilt</span>
+    </button>
   </div>
   <p class="pan-tip" id="panTip" role="status" aria-live="polite" hidden></p>
   <div class="layout">
     <div class="eyebrow header-left">We are Studio Signal</div>
-    <div class="eyebrow header-right">Branding + web that lights the way</div>
+    <div class="eyebrow header-right">Branding + web that light the way</div>
     <div class="footer-left">
       <a class="nav-link" href="https://www.instagram.com/studiosignalco/" target="_blank" rel="noopener noreferrer">Insta<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
       <a class="nav-link" href="https://www.linkedin.com/company/studiosignalco" target="_blank" rel="noopener noreferrer">LinkedIn<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
@@ -300,6 +398,11 @@
     motion: 'Tilt your phone to light the way',
     touch: 'Drag to light the way',
   };
+  const MOTION_PROMPT_COPY = {
+    tilt: 'Tap and tilt',
+    drag: 'Tap and drag to explore',
+  };
+  const MOTION_PROMPT_DISMISS_MS = 480;
   const isTouchDevice = matchMedia('(hover: none)').matches; // mobile: centre beam + device tilt
   const isIosDevice = (() => {
     if (typeof navigator === 'undefined') return false;
@@ -334,6 +437,7 @@
   let motionEnabled = false;
   let touchPanEnabled = false; // thumb drag when motion permission is denied
   let motionActivationPending = false;
+  let motionPromptDragOffer = false;
   let motionCalibrating = false;
   let motionCalibrationBuffer = [];
   let motionBaseline = null; // gamma/beta when calibrated — spotlight rests at screen centre
@@ -373,19 +477,11 @@
     buildLogoLayer();
     if (isTouchDevice && !motionEnabled && !touchPanEnabled) {
       initMobileSpotlight();
-      syncMotionPromptOverlay();
     }
   }
 
   function mobilePanActive() {
     return isTouchDevice && width < MOBILE_BREAKPOINT && (motionEnabled || touchPanEnabled);
-  }
-
-  function syncMotionPromptOverlay() {
-    if (!motionPromptBtn || motionEnabled || touchPanEnabled) return;
-    const diameter = revealRadius * 2;
-    motionPromptBtn.style.width = diameter + 'px';
-    motionPromptBtn.style.height = diameter + 'px';
   }
 
   function computeRevealRadius(w) {
@@ -637,15 +733,58 @@
     return el !== null && hero.contains(el);
   }
 
+  function hasMotionApi() {
+    return typeof DeviceOrientationEvent !== 'undefined'
+      || typeof DeviceMotionEvent !== 'undefined';
+  }
+
+  function shouldOfferMotionPrompt() {
+    return isTouchDevice && hasMotionApi();
+  }
+
+  function setMotionPromptLabel(text) {
+    if (!motionPromptBtn) return;
+    const label = motionPromptBtn.querySelector('.motion-prompt__label');
+    if (label) label.textContent = text;
+    motionPromptBtn.setAttribute('aria-label', text);
+  }
+
   function showMotionPrompt() {
     if (!motionPrompt || motionEnabled || touchPanEnabled) return;
+    if (!shouldOfferMotionPrompt()) return;
     motionPrompt.hidden = false;
-    syncMotionPromptOverlay();
+    motionPromptBtn?.classList.remove('is-dismissing');
+    setMotionPromptLabel(motionPromptDragOffer ? MOTION_PROMPT_COPY.drag : MOTION_PROMPT_COPY.tilt);
   }
 
   function hideMotionPrompt() {
     if (!motionPrompt) return;
     motionPrompt.hidden = true;
+    motionPromptBtn?.classList.remove('is-dismissing');
+    if (motionPromptBtn) motionPromptBtn.disabled = false;
+  }
+
+  function dismissMotionPromptAnimated() {
+    if (!motionPrompt || motionPrompt.hidden || !motionPromptBtn) {
+      hideMotionPrompt();
+      return;
+    }
+    if (motionPromptBtn.classList.contains('is-dismissing')) return;
+
+    motionPromptBtn.classList.add('is-dismissing');
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      motionPromptBtn.removeEventListener('transitionend', onTransitionEnd);
+      hideMotionPrompt();
+    };
+    const onTransitionEnd = (e) => {
+      if (e.target !== motionPromptBtn || e.propertyName !== 'opacity') return;
+      finish();
+    };
+    motionPromptBtn.addEventListener('transitionend', onTransitionEnd);
+    window.setTimeout(finish, MOTION_PROMPT_DISMISS_MS);
   }
 
   function panTipEligibleLayout() {
@@ -736,7 +875,7 @@
       applyTouchPan(t.clientX - rect.left, t.clientY - rect.top);
       return;
     }
-    if (isTouchDevice && !motionEnabled && !touchPanEnabled && motionRequiresUserGesture()) {
+    if (!motionEnabled && !touchPanEnabled && shouldOfferMotionPrompt()) {
       showMotionPrompt();
     }
   }
@@ -852,7 +991,6 @@
     touchPanEnabled = true;
     buildLogoLayer();
     initMobileSpotlight();
-    hideMotionPrompt();
     resetPanTipIdleClock();
   }
 
@@ -1009,12 +1147,22 @@
     motionEnabled = true;
     buildLogoLayer();
     beginMotionCalibration();
-    hideMotionPrompt();
+    dismissMotionPromptAnimated();
     resetPanTipIdleClock();
   }
 
   async function activateMotionFromUserClick() {
     if (motionEnabled || motionActivationPending) return;
+
+    if (motionPromptDragOffer && !touchPanEnabled) {
+      motionActivationPending = true;
+      if (motionPromptBtn) motionPromptBtn.disabled = true;
+      enableTouchPanControl();
+      dismissMotionPromptAnimated();
+      motionActivationPending = false;
+      return;
+    }
+
     motionActivationPending = true;
     if (motionPromptBtn) motionPromptBtn.disabled = true;
 
@@ -1026,22 +1174,17 @@
       if (granted) {
         startMotionListeners();
       } else {
-        enableTouchPanControl();
+        motionPromptDragOffer = true;
+        setMotionPromptLabel(MOTION_PROMPT_COPY.drag);
+        if (motionPromptBtn) motionPromptBtn.disabled = false;
       }
     } catch (_) {
-      enableTouchPanControl();
+      motionPromptDragOffer = true;
+      setMotionPromptLabel(MOTION_PROMPT_COPY.drag);
+      if (motionPromptBtn) motionPromptBtn.disabled = false;
     } finally {
       motionActivationPending = false;
     }
-  }
-
-  function enableDeviceMotion() {
-    if (motionEnabled || motionActivationPending) return;
-    if (motionRequiresUserGesture()) {
-      showMotionPrompt();
-      return;
-    }
-    startMotionListeners();
   }
 
   window.addEventListener('resize', resize);
@@ -1070,10 +1213,10 @@
   requestAnimationFrame(render);
   if (isTouchDevice) {
     initMobileSpotlight();
-    if (motionRequiresUserGesture()) {
+    if (shouldOfferMotionPrompt()) {
       showMotionPrompt();
     } else {
-      enableDeviceMotion();
+      enableTouchPanControl();
     }
   }
 })();
