@@ -276,6 +276,7 @@
   const MOTION_GAMMA_RANGE = 21.5;   // degrees for full horizontal travel (+30% sensitivity vs 28)
   const MOTION_BETA_RANGE = 16.9;    // degrees for full vertical travel (+30% sensitivity vs 22)
   const MOTION_CALIBRATION_SAMPLES = 10; // average first samples so mixed sensor frames do not yank the beam
+  const MOTION_LOGO_ZOOM_MOBILE = 1.85; // oversized logo so panning does not reveal empty canvas
   const POINTER_EASE_MOTION = 0.2;   // how quickly the beam follows tilt
   const isTouchDevice = matchMedia('(hover: none)').matches; // mobile: centre beam + device tilt
   const isIosDevice = (() => {
@@ -313,6 +314,12 @@
   let latestOrientationBeta = null;
   let prevRenderX = null;
   let prevRenderY = null;
+  let logoPanTargetX = 0;
+  let logoPanTargetY = 0;
+  let logoPanCurrentX = 0;
+  let logoPanCurrentY = 0;
+  let prevLogoPanX = null;
+  let prevLogoPanY = null;
 
   function resize() {
     const rect = hero.getBoundingClientRect();
@@ -353,20 +360,33 @@
     lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const isMobileLayout = width < MOBILE_BREAKPOINT;
-    const logoW = isMobileLayout
+    let logoW = isMobileLayout
       ? Math.min(Math.max(0, width - LOGO_INSET_MOBILE * 2), LOGO_MAX_WIDTH)
       : Math.min(width * LOGO_WIDTH_RATIO, LOGO_MAX_WIDTH);
+    if (isMobileLayout && motionEnabled) {
+      logoW *= MOTION_LOGO_ZOOM_MOBILE;
+    }
     const logoH = logoW * (bgLogoImg.naturalHeight / bgLogoImg.naturalWidth);
     lctx.drawImage(bgLogoImg, centerX - logoW / 2, centerY - logoH / 2, logoW, logoH);
+  }
+
+  function useLogoPanMode() {
+    return isTouchDevice && motionEnabled && width < MOBILE_BREAKPOINT;
   }
 
   function render() {
     ctx.clearRect(0, 0, width, height);
 
     const pointerEase = isTouchDevice ? POINTER_EASE_MOTION : POINTER_EASE;
+    const logoPanMode = useLogoPanMode();
 
     // ease the glow position toward the pointer for a gentle trailing feel
-    if (targetX !== null) {
+    if (logoPanMode) {
+      logoPanCurrentX += (logoPanTargetX - logoPanCurrentX) * pointerEase;
+      logoPanCurrentY += (logoPanTargetY - logoPanCurrentY) * pointerEase;
+      currentX = centerX;
+      currentY = centerY;
+    } else if (targetX !== null) {
       if (currentX === null) { currentX = targetX; currentY = targetY; }
       currentX += (targetX - currentX) * pointerEase;
       currentY += (targetY - currentY) * pointerEase;
@@ -378,17 +398,30 @@
     revealAlpha += (fadeOut - revealAlpha) * 0.18;
 
     const isMobileLayout = width < MOBILE_BREAKPOINT;
-    if (isMobileLayout && motionEnabled && currentX !== null && prevRenderX !== null) {
+    if (logoPanMode && prevLogoPanX !== null) {
+      const frameDx = logoPanCurrentX - prevLogoPanX;
+      const frameDy = logoPanCurrentY - prevLogoPanY;
+      moveSpeed = Math.max(moveSpeed, Math.hypot(frameDx, frameDy));
+      prevLogoPanX = logoPanCurrentX;
+      prevLogoPanY = logoPanCurrentY;
+    } else if (isMobileLayout && motionEnabled && currentX !== null && prevRenderX !== null) {
       const frameDx = currentX - prevRenderX;
       const frameDy = currentY - prevRenderY;
       moveSpeed = Math.max(moveSpeed, Math.hypot(frameDx, frameDy));
     }
-    if (currentX !== null) {
-      prevRenderX = currentX;
-      prevRenderY = currentY;
-    } else {
-      prevRenderX = null;
-      prevRenderY = null;
+    if (!logoPanMode) {
+      if (currentX !== null) {
+        prevRenderX = currentX;
+        prevRenderY = currentY;
+      } else {
+        prevRenderX = null;
+        prevRenderY = null;
+      }
+      prevLogoPanX = null;
+      prevLogoPanY = null;
+    } else if (prevLogoPanX === null) {
+      prevLogoPanX = logoPanCurrentX;
+      prevLogoPanY = logoPanCurrentY;
     }
 
     // grow the spotlight while actively moving, shrink back when it settles
@@ -405,11 +438,15 @@
     if (currentX !== null && revealAlpha > 0.002 && logoLayer) {
       ctx.save();
       ctx.globalAlpha = MAX_OPACITY * revealAlpha;
-      ctx.drawImage(logoLayer, 0, 0, width, height);
+      const logoDrawX = logoPanMode ? logoPanCurrentX : 0;
+      const logoDrawY = logoPanMode ? logoPanCurrentY : 0;
+      ctx.drawImage(logoLayer, logoDrawX, logoDrawY, width, height);
 
       // soft-edged circular spotlight mask
       ctx.globalCompositeOperation = 'destination-in';
-      const grad = ctx.createRadialGradient(currentX, currentY, 0, currentX, currentY, revealRadius * radiusScale);
+      const beamX = logoPanMode ? centerX : currentX;
+      const beamY = logoPanMode ? centerY : currentY;
+      const grad = ctx.createRadialGradient(beamX, beamY, 0, beamX, beamY, revealRadius * radiusScale);
       // sample a smooth cosine falloff (1 -> 0, easing at both ends) instead of a few
       // hand-picked stops, which read as visible rings where the slope kinked
       for (let i = 0; i <= GRADIENT_STOPS; i++) {
@@ -491,22 +528,44 @@
     targetY = centerY;
     currentX = centerX;
     currentY = centerY;
+    logoPanTargetX = 0;
+    logoPanTargetY = 0;
+    logoPanCurrentX = 0;
+    logoPanCurrentY = 0;
+    prevLogoPanX = null;
+    prevLogoPanY = null;
     pointerActive = true;
     fadeOut = 1;
     revealAlpha = 1;
   }
 
-  function clampSpotlight(x, y) {
-    const edgeX = width * MOTION_MARGIN;
-    const edgeY = height * MOTION_MARGIN;
+  function clampLogoPan(panX, panY) {
+    const maxDx = width * (0.5 - MOTION_MARGIN);
+    const maxDy = height * (0.5 - MOTION_MARGIN);
     return {
-      x: Math.min(width - edgeX, Math.max(edgeX, x)),
-      y: Math.min(height - edgeY, Math.max(edgeY, y)),
+      x: Math.min(maxDx, Math.max(-maxDx, panX)),
+      y: Math.min(maxDy, Math.max(-maxDy, panY)),
     };
   }
 
   function holdSpotlightAtCenter() {
+    logoPanTargetX = 0;
+    logoPanTargetY = 0;
     updateTarget(centerX, centerY, { trackSpeed: false });
+  }
+
+  function updateLogoPan(panX, panY, opts) {
+    const trackSpeed = !opts || opts.trackSpeed !== false;
+    if (trackSpeed) {
+      const dx = panX - logoPanTargetX;
+      const dy = panY - logoPanTargetY;
+      moveSpeed = Math.max(moveSpeed, Math.hypot(dx, dy));
+    }
+    logoPanTargetX = panX;
+    logoPanTargetY = panY;
+    targetX = centerX;
+    targetY = centerY;
+    pointerActive = true;
   }
 
   function beginMotionCalibration() {
@@ -560,10 +619,11 @@
     const dBeta = beta - motionBaseline.beta;
     const maxDx = width * (0.5 - MOTION_MARGIN);
     const maxDy = height * (0.5 - MOTION_MARGIN);
-    const rawX = centerX - (dGamma / MOTION_GAMMA_RANGE) * maxDx;
-    const rawY = centerY - (dBeta / MOTION_BETA_RANGE) * maxDy;
-    const point = clampSpotlight(rawX, rawY);
-    updateTarget(point.x, point.y);
+    // First-person pan: fixed beam, logo shifts opposite to head tilt (up/left → logo down/right).
+    const panX = (dGamma / MOTION_GAMMA_RANGE) * maxDx;
+    const panY = (dBeta / MOTION_BETA_RANGE) * maxDy;
+    const pan = clampLogoPan(panX, panY);
+    updateLogoPan(pan.x, pan.y);
   }
 
   function screenOrientationAngle() {
@@ -688,6 +748,7 @@
       window.addEventListener('devicemotion', handleDeviceMotion, true);
     }
     motionEnabled = true;
+    buildLogoLayer();
     beginMotionCalibration();
     hideMotionPrompt();
   }
