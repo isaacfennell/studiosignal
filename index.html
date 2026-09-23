@@ -374,6 +374,8 @@
   const REVEAL_CORE_FRACTION = 0.14; // share of radius that stays fully opaque before falloff (desktop)
   const REVEAL_CORE_FRACTION_MOBILE = 0.16; // slightly softer base falloff on mobile
   const REVEAL_CORE_BLOOM_MOBILE = 0.16; // extra core width while the beam swells on movement
+  const BEAM_STANDBY_MASK_SCALE = 0.14; // same falloff shape pre-tap; centre alpha scaled down
+  const BEAM_POWER_EASE = 0.12; // eases mask scale up to full brightness after activation
   const POINTER_EASE = 0.14;         // 0..1, how quickly the glow follows the mouse/finger
   const LEAVE_HOLD_MS = 300;         // pause at exit before returning to the logo centre
   const LEAVE_CENTER_ARRIVE_PX = 8;  // end the leave sequence when settled on the logo centre
@@ -460,6 +462,22 @@
   let panTipMaxDisplacement = 0;
   let panTipShown = false;
   let panTipFlashing = false;
+  let spotlightPower = isTouchDevice ? 0 : 1; // 0 = dim standby beam, 1 = full torch (touch pre-tap)
+
+  function beamMaskAlpha(t, coreFraction) {
+    if (t <= coreFraction) return 1;
+    const u = (t - coreFraction) / (1 - coreFraction);
+    return 0.5 * (1 + Math.cos(Math.PI * u));
+  }
+
+  function beamMaskIntensity() {
+    return BEAM_STANDBY_MASK_SCALE + (1 - BEAM_STANDBY_MASK_SCALE) * spotlightPower;
+  }
+
+  function spotlightPowerTarget() {
+    if (!isTouchDevice) return 1;
+    return (motionEnabled || touchPanEnabled) ? 1 : 0;
+  }
 
   function resize() {
     const rect = hero.getBoundingClientRect();
@@ -592,6 +610,9 @@
     fadeOut += (fadeTarget - fadeOut) * 0.09;
     revealAlpha += (fadeOut - revealAlpha) * 0.18;
 
+    const powerTarget = spotlightPowerTarget();
+    spotlightPower += (powerTarget - spotlightPower) * BEAM_POWER_EASE;
+
     const isMobileLayout = width < MOBILE_BREAKPOINT;
     if (logoPanMode && prevLogoPanX !== null) {
       const frameDx = logoPanCurrentX - prevLogoPanX;
@@ -659,13 +680,7 @@
       // hand-picked stops, which read as visible rings where the slope kinked
       for (let i = 0; i <= GRADIENT_STOPS; i++) {
         const t = i / GRADIENT_STOPS;
-        let alpha;
-        if (t <= coreFraction) {
-          alpha = 1;
-        } else {
-          const u = (t - coreFraction) / (1 - coreFraction);
-          alpha = 0.5 * (1 + Math.cos(Math.PI * u));
-        }
+        const alpha = beamMaskAlpha(t, coreFraction) * beamMaskIntensity();
         grad.addColorStop(t, `rgba(255,255,255,${alpha})`);
       }
       ctx.fillStyle = grad;
@@ -1217,6 +1232,7 @@
       showMotionPrompt();
     } else {
       enableTouchPanControl();
+      spotlightPower = 1;
     }
   }
 })();
