@@ -7,6 +7,8 @@ Specialist UK brand and web studio. Enquiries: hi@studiosignal.co.uk
 ## Site
 
 - [Home](https://studiosignal.co.uk/): Studio positioning, interactive brand moment, contact, and social links.
+- [Home (Markdown)](https://studiosignal.co.uk/index.md): Plain-text version of the home page.
+- [Sitemap](https://studiosignal.co.uk/sitemap.xml): Canonical URLs for crawlers.
 
 ## Latest project — kinspace
 

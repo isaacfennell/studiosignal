@@ -2,4 +2,6 @@
 User-agent: *
 Allow: /
 
+Sitemap: https://studiosignal.co.uk/sitemap.xml
+
 # Curated summary for AI tools: /llms.txt
