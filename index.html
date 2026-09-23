@@ -277,6 +277,7 @@
   const MOTION_BETA_RANGE = 16.9;    // degrees for full vertical travel (+30% sensitivity vs 22)
   const MOTION_CALIBRATION_SAMPLES = 10; // average first samples so mixed sensor frames do not yank the beam
   const MOTION_LOGO_ZOOM_MOBILE = 1.65; // headroom for pan without cropping the mark off-layer
+  const LOGO_LAYER_BLEED = 16;       // px padding so the full SVG is drawable inside the pan layer
   const LOGO_MOTION_ANCHOR_Y = 168.5 / 287; // viewBox Y below the STUDIO/SIGNAL row gap (not geometric centre)
   const POINTER_EASE_MOTION = 0.2;   // how quickly the beam follows tilt
   const isTouchDevice = matchMedia('(hover: none)').matches; // mobile: centre beam + device tilt
@@ -375,14 +376,15 @@
     let layerHeight = height;
 
     if (motionLayer) {
-      const tiltPanX = width * (0.5 - MOTION_MARGIN);
-      const tiltPanY = height * (0.5 - MOTION_MARGIN);
-      logoLayerPadX = Math.ceil(Math.max(tiltPanX, (logoW - width) / 2 + 12));
-      logoLayerPadY = Math.ceil(Math.max(tiltPanY, (logoH - height) / 2 + 12));
+      const overflowX = Math.max(0, (logoW - width) / 2);
+      const overflowY = Math.max(0, (logoH - height) / 2);
+      logoLayerPadX = Math.ceil(overflowX + LOGO_LAYER_BLEED);
+      logoLayerPadY = Math.ceil(overflowY + LOGO_LAYER_BLEED);
       layerWidth = width + logoLayerPadX * 2;
       layerHeight = height + logoLayerPadY * 2;
-      logoPanLimitX = Math.min(tiltPanX, logoLayerPadX);
-      logoPanLimitY = Math.min(tiltPanY, logoLayerPadY);
+      // Tilt travel matches how far we can slide the viewport across the full logo width/height.
+      logoPanLimitX = overflowX;
+      logoPanLimitY = overflowY;
     } else {
       logoPanLimitX = 0;
       logoPanLimitY = 0;
@@ -472,9 +474,12 @@
       ctx.save();
       ctx.globalAlpha = MAX_OPACITY * revealAlpha;
       if (logoPanMode) {
-        const srcX = logoLayerPadX - logoPanCurrentX;
-        const srcY = logoLayerPadY - logoPanCurrentY;
-        ctx.drawImage(logoLayer, srcX, srcY, width, height, 0, 0, width, height);
+        // Source rect is in the layer bitmap's pixel space (layer is width/height × dpr).
+        const srcX = (logoLayerPadX - logoPanCurrentX) * dpr;
+        const srcY = (logoLayerPadY - logoPanCurrentY) * dpr;
+        const srcW = width * dpr;
+        const srcH = height * dpr;
+        ctx.drawImage(logoLayer, srcX, srcY, srcW, srcH, 0, 0, width, height);
       } else {
         ctx.drawImage(logoLayer, 0, 0, width, height);
       }
@@ -654,8 +659,8 @@
 
     const dGamma = gamma - motionBaseline.gamma;
     const dBeta = beta - motionBaseline.beta;
-    const maxDx = width * (0.5 - MOTION_MARGIN);
-    const maxDy = height * (0.5 - MOTION_MARGIN);
+    const maxDx = logoPanLimitX > 0 ? logoPanLimitX : width * (0.5 - MOTION_MARGIN);
+    const maxDy = logoPanLimitY > 0 ? logoPanLimitY : height * (0.5 - MOTION_MARGIN);
     // First-person pan: fixed beam, logo shifts opposite to head tilt (up/left → logo down/right).
     const panX = (dGamma / MOTION_GAMMA_RANGE) * maxDx;
     const panY = (dBeta / MOTION_BETA_RANGE) * maxDy;
