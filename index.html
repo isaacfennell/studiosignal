@@ -503,6 +503,7 @@
   let revealRadius = REVEAL_RADIUS_MIN; // clamp(MIN, width * VW, MAX), recalculated on resize
   let motionEnabled = false;
   let touchPanEnabled = false; // thumb drag when motion permission is denied
+  let touchSpotlightSession = false; // finger down: drag spotlight, ignore orientation events
   let motionActivationPending = false;
   let motionPromptDragOffer = false;
   let motionCalibrating = false;
@@ -533,7 +534,7 @@
 
   function spotlightPowerTarget() {
     if (!isTouchDevice) return 1;
-    return (motionEnabled || touchPanEnabled) ? 1 : 0;
+    return (motionEnabled || touchPanEnabled || touchSpotlightSession) ? 1 : 0;
   }
 
   function resize() {
@@ -561,7 +562,8 @@
   }
 
   function mobilePanActive() {
-    return isTouchDevice && width < MOBILE_BREAKPOINT && (motionEnabled || touchPanEnabled);
+    return isTouchDevice && width < MOBILE_BREAKPOINT
+      && (motionEnabled || touchPanEnabled || touchSpotlightSession);
   }
 
   function heroFocalY() {
@@ -623,7 +625,7 @@
 
     const pointerEase = isTouchDevice ? POINTER_EASE_MOTION : POINTER_EASE;
 
-    if (mobilePanActive() && motionEnabled && targetX !== null) {
+    if (mobilePanActive() && motionEnabled && !touchSpotlightSession && targetX !== null) {
       targetX += (spotRawTargetX - targetX) * PAN_TARGET_EASE;
       targetY += (spotRawTargetY - targetY) * PAN_TARGET_EASE;
     }
@@ -918,14 +920,35 @@
     }
   }
 
+  function beginTouchSpotlightSession() {
+    if (!isTouchDevice || touchSpotlightSession) return;
+    touchSpotlightSession = true;
+    if (!motionEnabled && !touchPanEnabled) {
+      initMobileSpotlight();
+    }
+  }
+
+  function endTouchSpotlightSession() {
+    if (!touchSpotlightSession) return;
+    touchSpotlightSession = false;
+    if (motionEnabled && targetX !== null && targetY !== null) {
+      spotRawTargetX = targetX;
+      spotRawTargetY = targetY;
+    }
+    resetPanTipIdleClock();
+  }
+
+  function applyTouchFromEvent(e) {
+    if (!e.touches.length) return;
+    const rect = hero.getBoundingClientRect();
+    const t = e.touches[0];
+    applyTouchPan(t.clientX - rect.left, t.clientY - rect.top);
+  }
+
   function handleTouchStart(e) {
     if (isInteractiveTouchTarget(e)) return;
-    if (touchPanEnabled && e.touches.length) {
-      const rect = hero.getBoundingClientRect();
-      const t = e.touches[0];
-      applyTouchPan(t.clientX - rect.left, t.clientY - rect.top);
-      return;
-    }
+    beginTouchSpotlightSession();
+    applyTouchFromEvent(e);
     if (!motionEnabled && !touchPanEnabled && shouldOfferMotionPrompt()) {
       showMotionPrompt();
     }
@@ -934,14 +957,14 @@
   function handleTouchMove(e) {
     if (isInteractiveTouchTarget(e)) return;
     e.preventDefault();
-    if (touchPanEnabled && e.touches.length) {
-      const rect = hero.getBoundingClientRect();
-      const t = e.touches[0];
-      applyTouchPan(t.clientX - rect.left, t.clientY - rect.top);
-    }
+    if (!touchSpotlightSession) beginTouchSpotlightSession();
+    applyTouchFromEvent(e);
   }
 
-  function handleTouchEnd() {
+  function handleTouchEnd(e) {
+    if (e.touches.length === 0) {
+      endTouchSpotlightSession();
+    }
     if (!isTouchDevice) {
       pointerActive = false;
     }
@@ -1113,7 +1136,7 @@
   }
 
   function handleDeviceOrientation(e) {
-    if (!motionEnabled) return;
+    if (!motionEnabled || touchSpotlightSession) return;
     if (e.beta == null || Number.isNaN(e.beta)) return;
     latestOrientationGamma = e.gamma;
     latestOrientationBeta = e.beta;
@@ -1121,7 +1144,7 @@
   }
 
   function handleDeviceMotion(e) {
-    if (!motionEnabled || !isIosDevice) return;
+    if (!motionEnabled || touchSpotlightSession || !isIosDevice) return;
     const g = e.accelerationIncludingGravity;
     if (!g || g.x == null || g.y == null || g.z == null) return;
     motionGammaFromGravity = tiltFromGravity(g.x, g.y, g.z).gamma;
