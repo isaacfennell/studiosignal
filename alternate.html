@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Signal</title>
+<meta name="description" content="From brand positioning to launch day and beyond, we build the whole picture. Studio Signal is a UK brand and web studio enabling purpose-led organisations to cut through the digital noise.">
+<link rel="alternate" type="text/markdown" href="https://studiosignal.co.uk/index.md" title="Studio Signal (Markdown)">
+<link rel="sitemap" type="application/xml" href="sitemap.xml">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="512x512" href="assets/favicon-512.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://use.typekit.net" crossorigin>
+<link rel="preconnect" href="https://p.typekit.net" crossorigin>
+<link rel="stylesheet" href="https://use.typekit.net/vxi4vqw.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Funnel+Sans:wght@400&display=swap" rel="stylesheet">
+<link rel="preload" href="assets/logo.svg" as="image" fetchpriority="high">
+<style>
+  :root {
+    --bg: #101010;
+    --fg: #FFFCF5;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .hero {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    height: 100svh;
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  .hero canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .layout {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "header-left  header-right"
+      "spot         spot"
+      "footer-left  footer-right";
+    padding: 40px;
+    pointer-events: none;
+  }
+
+  .layout a {
+    pointer-events: auto;
+    touch-action: manipulation;
+  }
+
+  .eyebrow, .nav-link, .enquiries {
+    font-family: "zuume", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: normal;
+    text-transform: uppercase;
+    color: var(--fg);
+    text-decoration: none;
+  }
+
+  .nav-link, .enquiries a {
+    color: var(--fg);
+    text-decoration: none;
+    transition: color 300ms ease;
+  }
+
+  .nav-link:hover {
+    color: #C8F3FA;
+  }
+
+  .enquiries a {
+    color: #C8F3FA;
+    transition: color 300ms ease;
+  }
+
+  .enquiries a:hover {
+    color: #FFD16B;
+  }
+
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .nav-link svg {
+    flex: none;
+    overflow: visible;
+  }
+
+  .nav-link .external-link-arrow {
+    fill: #C8F3FA;
+    transition: transform 300ms ease, fill 300ms ease;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .nav-link:hover .external-link-arrow {
+    transform: translate(2px, -2px);
+    fill: #FFD16B;
+  }
+
+  .header-left { grid-area: header-left; justify-self: start; align-self: start; font-size: 2.375rem; }
+
+  .header-right {
+    grid-area: header-right;
+    justify-self: end;
+    align-self: start;
+    text-align: right;
+  }
+
+  .footer-left {
+    grid-area: footer-left;
+    justify-self: start;
+    align-self: end;
+    display: flex;
+    gap: 28px;
+  }
+
+  .footer-right {
+    grid-area: footer-right;
+    justify-self: end;
+    align-self: end;
+    text-align: right;
+    pointer-events: auto;
+  }
+
+  @media (max-width: 640px) {
+    .motion-prompt {
+      transform: translateY(calc(-1 * var(--hero-focal-y-shift, 0px)));
+    }
+
+    .pan-tip {
+      top: calc(50% - var(--hero-focal-y-shift, 0px) + min(28vw, 7.5rem));
+    }
+
+    .layout {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr auto auto auto;
+      grid-template-areas:
+        "header-left"
+        "spot"
+        "header-right"
+        "footer-right"
+        "footer-left";
+      padding: 24px;
+      row-gap: 1.25rem;
+    }
+
+    .header-right,
+    .footer-left,
+    .footer-right {
+      justify-self: start;
+      text-align: left;
+    }
+
+    .footer-right,
+    .footer-left {
+      margin-top: -0.5rem;
+    }
+  }
+
+  .motion-prompt {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  .motion-prompt[hidden] {
+    display: none;
+  }
+
+  .motion-prompt__btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 10px 24px;
+    transform: scale(1);
+    opacity: 1;
+    transition: opacity 420ms ease, transform 420ms ease;
+    border: 1px solid transparent;
+    border-radius: 100px;
+    background:
+      linear-gradient(rgba(255, 252, 245, 0.03), rgba(255, 252, 245, 0.03)) padding-box,
+      linear-gradient(
+        180deg,
+        rgba(255, 252, 245, 0.72) 0%,
+        rgba(255, 252, 245, 0.38) 42%,
+        rgba(255, 252, 245, 0.08) 100%
+      ) border-box;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 252, 245, 0.06),
+      inset 1px 1px 0 rgba(255, 252, 245, 0.12),
+      inset -1px -1px 0 rgba(0, 0, 0, 0.2);
+    color: var(--fg);
+    font-family: "Funnel Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    white-space: nowrap;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    pointer-events: auto;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  /* Frost — clipped inside the pill, not on the gradient border */
+  .motion-prompt__btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: rgba(255, 252, 245, 0.04);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    clip-path: inset(0 round 100px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Specular highlight + inner rim fade toward centre */
+  .motion-prompt__btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+      linear-gradient(
+        135deg,
+        rgba(255, 252, 245, 0.22) 0%,
+        rgba(255, 252, 245, 0.05) 38%,
+        transparent 58%
+      ),
+      radial-gradient(
+        120% 90% at 50% 50%,
+        transparent 58%,
+        rgba(255, 252, 245, 0.14) 78%,
+        rgba(255, 252, 245, 0.28) 100%
+      );
+    opacity: 0.85;
+    clip-path: inset(0 round 100px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .motion-prompt__label {
+    position: relative;
+    z-index: 1;
+  }
+
+  .motion-prompt__btn:disabled:not(.is-dismissing) {
+    cursor: wait;
+    opacity: 0.72;
+  }
+
+  .motion-prompt__btn.is-dismissing {
+    opacity: 0;
+    transform: scale(0.9);
+    pointer-events: none;
+    cursor: default;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .motion-prompt__btn {
+      transition: opacity 220ms ease;
+    }
+
+    .motion-prompt__btn.is-dismissing {
+      transform: scale(1);
+    }
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .motion-prompt__btn::before {
+      background: rgba(32, 32, 32, 0.88);
+    }
+  }
+
+  .pan-tip {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + min(28vw, 7.5rem));
+    transform: translate(-50%, 0);
+    z-index: 4;
+    margin: 0;
+    padding: 0 1rem;
+    max-width: min(18rem, 88vw);
+    pointer-events: none;
+    text-align: center;
+    font-family: "zuume", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.35;
+    text-transform: uppercase;
+    color: var(--fg);
+    opacity: 0;
+  }
+
+  .pan-tip[hidden] {
+    display: none;
+  }
+
+  .pan-tip.is-flashing {
+    display: block;
+    animation: pan-tip-soft-flash 4.2s ease-in-out forwards;
+  }
+
+  @keyframes pan-tip-soft-flash {
+    0%, 100% { opacity: 0; }
+    12%, 28% { opacity: 0.72; }
+    42% { opacity: 0.28; }
+    58%, 74% { opacity: 0.58; }
+    88% { opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pan-tip.is-flashing {
+      animation: none;
+      opacity: 0.65;
+    }
+  }
+</style>
+</head>
+<body>
+
+<section class="hero" id="hero">
+  <canvas id="sunCanvas"></canvas>
+  <div class="motion-prompt" id="motionPrompt" hidden>
+    <button type="button" class="motion-prompt__btn" id="motionPromptBtn" aria-label="Tap and tilt to enable motion control">
+      <span class="motion-prompt__label">Tap and tilt</span>
+    </button>
+  </div>
+  <p class="pan-tip" id="panTip" role="status" aria-live="polite" hidden></p>
+  <div class="layout">
+    <div class="eyebrow header-left">Studio Signal</div>
+    <div class="eyebrow header-right">Branding <span aria-hidden="true">+</span> web that light the way</div>
+    <div class="footer-left">
+      <a class="nav-link" href="https://www.instagram.com/studiosignalco/" target="_blank" rel="noopener noreferrer">Insta<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="external-link-arrow" d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
+      <a class="nav-link" href="https://www.linkedin.com/company/studiosignalco" target="_blank" rel="noopener noreferrer">LinkedIn<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="external-link-arrow" d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
+    </div>
+    <div class="enquiries footer-right">
+      <a href="mailto:hi@studiosignal.co.uk">hi@studiosignal.co.uk</a>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  const hero = document.getElementById('hero');
+  const canvas = document.getElementById('sunCanvas');
+  const ctx = canvas.getContext('2d');
+  const motionPrompt = document.getElementById('motionPrompt');
+  const motionPromptBtn = document.getElementById('motionPromptBtn');
+  const panTipEl = document.getElementById('panTip');
+
+  // --- config ---------------------------------------------------------
+  const LOGO_WIDTH_RATIO = 1.1;      // logo layer fills 110% of the hero width on desktop
+  const LOGO_INSET_MOBILE = 10;        // px — gap from each viewport edge on mobile
+  const MOBILE_BREAKPOINT = 640;     // px
+  const LOGO_MAX_WIDTH = 800;         // px — cap on the logo layer's width
+  const MAX_OPACITY = 1;             // opacity at the centre of the beam
+  const REVEAL_RADIUS_MIN = 170;     // px — searchlight floor on desktop-width viewports
+  const REVEAL_RADIUS_MAX = 340;     // px — searchlight size ceiling, on wide desktop viewports
+  const REVEAL_RADIUS_VW = 0.18;     // preferred size as a share of the hero's width, like clamp()'s middle arg
+  const REVEAL_RADIUS_VW_MOBILE = 0.31; // mobile scales with viewport — avoids the desktop min blowing up the beam
+  const REVEAL_RADIUS_MIN_MOBILE = 96;
+  const REVEAL_RADIUS_MAX_MOBILE = 220;
+  const REVEAL_RADIUS_MOBILE_SCALE = 1.38; // default beam size on mobile
+  const REVEAL_CORE_FRACTION = 0.14; // share of radius that stays fully opaque before falloff (desktop)
+  const REVEAL_CORE_FRACTION_MOBILE = 0.16; // slightly softer base falloff on mobile
+  const REVEAL_CORE_BLOOM_MOBILE = 0.16; // extra core width while the beam swells on movement
+  const BEAM_STANDBY_MASK_SCALE = 0.14; // same falloff shape pre-tap; centre alpha scaled down
+  const BEAM_POWER_EASE = 0.12; // eases mask scale up to full brightness after activation
+  const POINTER_EASE = 0.14;         // 0..1, how quickly the glow follows the mouse/finger
+  const LEAVE_HOLD_MS = 300;         // pause at exit before returning to the logo centre
+  const LEAVE_CENTER_ARRIVE_PX = 8;  // end the leave sequence when settled on the logo centre
+  const GROWTH_ON_MOVE = 0.15;       // spotlight grows up to 15% while actively moving (desktop)
+  const GROWTH_ON_MOVE_MOBILE = 0.36; // mobile tilt: speed-linked expansion
+  const MAX_RADIUS_SCALE_MOBILE = 1.48; // ceiling on mobile beam scale (base + growth)
+  const SPEED_FOR_MAX_GROWTH = 35;   // px/move-event needed to hit full growth
+  const SPEED_FOR_MAX_GROWTH_MOBILE = 9; // lower bar — tilt deltas are smaller per event
+  const GRADIENT_STOPS = 16;         // samples along the spotlight's falloff curve — higher = smoother
+  const MOTION_MARGIN = 0.12;        // keep the beam off the viewport edges
+  const MOTION_GAMMA_RANGE = 21.5;   // degrees for full horizontal travel (+30% sensitivity vs 28)
+  const MOTION_BETA_RANGE = 16.9;    // degrees for full vertical travel (+30% sensitivity vs 22)
+  const MOTION_PAN_GAIN_X = 1.28;    // horizontal tilt reaches pan limits slightly faster than vertical
+  const MOTION_CALIBRATION_SAMPLES = 10; // average first samples so mixed sensor frames do not yank the beam
+  const MOBILE_FOCAL_Y_SHIFT = 0.06; // nudge logo + beam rest position up on small screens (share of hero height)
+  const LOGO_MOTION_ANCHOR_Y = 168.5 / 287; // viewBox Y below the STUDIO/SIGNAL row gap (not geometric centre)
+  const PAN_TARGET_EASE = 0.22;      // filters noisy tilt into spotlight target (keeps range/sensitivity)
+  const POINTER_EASE_MOTION = 0.17;  // how quickly the beam catches the target on mobile
+  const PAN_TIP_IDLE_MS = 4000;
+  const PAN_TIP_MOVE_THRESHOLD = 18; // px — max beam travel from rest in the idle window
+  const PAN_TIP_COPY = {
+    motion: 'Tilt your phone to light the way',
+    touch: 'Drag to light the way',
+  };
+  const MOTION_PROMPT_COPY = {
+    tilt: 'Tap and tilt',
+    drag: 'Tap and drag to explore',
+  };
+  const MOTION_PROMPT_DISMISS_MS = 480;
+  const isTouchDevice = matchMedia('(hover: none)').matches; // mobile: static logo, moving spotlight
+  const isIosDevice = (() => {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/i.test(ua)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  })();
+  let dpr = Math.min(window.devicePixelRatio || 1, 2);
+  let width = 0, height = 0;
+  let centerX = 0, centerY = 0;
+  let logoLayer = null; // offscreen canvas holding the static logo mark
+
+  const bgLogoImg = new Image();
+  let bgLogoLoaded = false;
+  bgLogoImg.onload = () => { bgLogoLoaded = true; buildLogoLayer(); };
+  bgLogoImg.src = 'assets/logo.svg';
+
+  // target = raw pointer position, current = eased position the render loop follows
+  let targetX = null, targetY = null;
+  let currentX = null, currentY = null;
+  let pointerActive = false;
+  let desktopLeaveAnimating = false;
+  let desktopLeavePhase = null; // 'delay' | 'toCenter'
+  let desktopLeaveDelayUntil = 0;
+  let desktopLeaveHoldX = 0;
+  let desktopLeaveHoldY = 0;
+  let fadeOut = 0; // 1 = fully visible glow, 0 = pointer has left
+  let revealAlpha = 0; // eased reveal strength, follows fadeOut
+  let moveSpeed = 0; // decays each frame, spikes on pointer movement
+  let radiusScale = 1; // eased 1..1+GROWTH_ON_MOVE, driven by moveSpeed
+  let revealRadius = REVEAL_RADIUS_MIN; // clamp(MIN, width * VW, MAX), recalculated on resize
+  let motionEnabled = false;
+  let touchPanEnabled = false; // thumb drag when motion permission is denied
+  let motionActivationPending = false;
+  let motionPromptDragOffer = false;
+  let motionCalibrating = false;
+  let motionCalibrationBuffer = [];
+  let motionBaseline = null; // gamma/beta when calibrated — spotlight rests at screen centre
+  let motionGammaFromGravity = null; // iOS often omits gamma on deviceorientation; gravity fills horizontal
+  let latestOrientationGamma = null;
+  let latestOrientationBeta = null;
+  let prevRenderX = null;
+  let prevRenderY = null;
+  let spotRawTargetX = 0;
+  let spotRawTargetY = 0;
+  let panTipIdleSince = 0;
+  let panTipMaxDisplacement = 0;
+  let panTipShown = false;
+  let panTipFlashing = false;
+  let spotlightPower = isTouchDevice ? 0 : 1; // 0 = dim standby beam, 1 = full torch (touch pre-tap)
+
+  function beamMaskAlpha(t, coreFraction) {
+    if (t <= coreFraction) return 1;
+    const u = (t - coreFraction) / (1 - coreFraction);
+    return 0.5 * (1 + Math.cos(Math.PI * u));
+  }
+
+  function beamMaskIntensity() {
+    return BEAM_STANDBY_MASK_SCALE + (1 - BEAM_STANDBY_MASK_SCALE) * spotlightPower;
+  }
+
+  function spotlightPowerTarget() {
+    if (!isTouchDevice) return 1;
+    return (motionEnabled || touchPanEnabled) ? 1 : 0;
+  }
+
+  function resize() {
+    const rect = hero.getBoundingClientRect();
+    width = rect.width;
+    height = rect.height;
+    centerX = width / 2;
+    centerY = height / 2;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    revealRadius = computeRevealRadius(width);
+    hero.style.setProperty(
+      '--hero-focal-y-shift',
+      width < MOBILE_BREAKPOINT ? `${height * MOBILE_FOCAL_Y_SHIFT}px` : '0px'
+    );
+    buildLogoLayer();
+    if (isTouchDevice && !motionEnabled && !touchPanEnabled) {
+      initMobileSpotlight();
+    }
+  }
+
+  function mobilePanActive() {
+    return isTouchDevice && width < MOBILE_BREAKPOINT && (motionEnabled || touchPanEnabled);
+  }
+
+  function heroFocalY() {
+    return width < MOBILE_BREAKPOINT ? centerY - height * MOBILE_FOCAL_Y_SHIFT : centerY;
+  }
+
+  function computeRevealRadius(w) {
+    if (w < MOBILE_BREAKPOINT) {
+      const base = Math.min(
+        REVEAL_RADIUS_MAX_MOBILE,
+        Math.max(REVEAL_RADIUS_MIN_MOBILE, w * REVEAL_RADIUS_VW_MOBILE)
+      );
+      return base * REVEAL_RADIUS_MOBILE_SCALE;
+    }
+    return Math.min(REVEAL_RADIUS_MAX, Math.max(REVEAL_RADIUS_MIN, w * REVEAL_RADIUS_VW));
+  }
+
+  function buildLogoLayer() {
+    if (!bgLogoLoaded || !width || !height) return;
+
+    const isMobileLayout = width < MOBILE_BREAKPOINT;
+    const logoW = isMobileLayout
+      ? Math.min(Math.max(0, width - LOGO_INSET_MOBILE * 2), LOGO_MAX_WIDTH)
+      : Math.min(width * LOGO_WIDTH_RATIO, LOGO_MAX_WIDTH);
+    const aspect = bgLogoImg.naturalHeight / bgLogoImg.naturalWidth;
+    const logoH = logoW * aspect;
+
+    logoLayer = document.createElement('canvas');
+    logoLayer.width = Math.round(width * dpr);
+    logoLayer.height = Math.round(height * dpr);
+    const lctx = logoLayer.getContext('2d');
+    lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const focalY = isMobileLayout ? heroFocalY() : centerY;
+    const drawX = centerX - logoW / 2;
+    const drawY = isMobileLayout
+      ? focalY - LOGO_MOTION_ANCHOR_Y * logoH
+      : focalY - logoH / 2;
+    lctx.drawImage(bgLogoImg, drawX, drawY, logoW, logoH);
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, width, height);
+
+    const pointerEase = isTouchDevice ? POINTER_EASE_MOTION : POINTER_EASE;
+
+    if (mobilePanActive() && motionEnabled && targetX !== null) {
+      targetX += (spotRawTargetX - targetX) * PAN_TARGET_EASE;
+      targetY += (spotRawTargetY - targetY) * PAN_TARGET_EASE;
+    }
+
+    // ease the glow position toward the pointer for a gentle trailing feel
+    if (targetX !== null) {
+      if (currentX === null) { currentX = targetX; currentY = targetY; }
+      currentX += (targetX - currentX) * pointerEase;
+      currentY += (targetY - currentY) * pointerEase;
+    }
+
+    if (desktopLeavePhase === 'delay') {
+      targetX = desktopLeaveHoldX;
+      targetY = desktopLeaveHoldY;
+      if (performance.now() >= desktopLeaveDelayUntil) {
+        desktopLeavePhase = 'toCenter';
+        targetX = centerX;
+        targetY = centerY;
+        if (currentX !== null && currentY !== null) {
+          moveSpeed = Math.max(moveSpeed, Math.hypot(centerX - currentX, centerY - currentY));
+        }
+      }
+    } else if (desktopLeavePhase === 'toCenter' && currentX !== null && currentY !== null) {
+      if (Math.hypot(centerX - currentX, centerY - currentY) <= LEAVE_CENTER_ARRIVE_PX) {
+        desktopLeavePhase = null;
+        desktopLeaveAnimating = false;
+        targetX = centerX;
+        targetY = centerY;
+        pointerActive = false;
+      }
+    }
+
+    // fade the whole glow in/out as the pointer enters/leaves the hero
+    const fadeTarget = (pointerActive || desktopLeaveAnimating) ? 1 : 0;
+    fadeOut += (fadeTarget - fadeOut) * 0.09;
+    revealAlpha += (fadeOut - revealAlpha) * 0.18;
+
+    const powerTarget = spotlightPowerTarget();
+    spotlightPower += (powerTarget - spotlightPower) * BEAM_POWER_EASE;
+
+    const isMobileLayout = width < MOBILE_BREAKPOINT;
+    if (isMobileLayout && mobilePanActive() && currentX !== null && prevRenderX !== null) {
+      const frameDx = currentX - prevRenderX;
+      const frameDy = currentY - prevRenderY;
+      moveSpeed = Math.max(moveSpeed, Math.hypot(frameDx, frameDy));
+    }
+    if (currentX !== null) {
+      prevRenderX = currentX;
+      prevRenderY = currentY;
+    } else {
+      prevRenderX = null;
+      prevRenderY = null;
+    }
+
+    updatePanTipIdle();
+
+    // grow the spotlight while actively moving, shrink back when it settles
+    moveSpeed *= 0.85;
+    const growthOnMove = isMobileLayout ? GROWTH_ON_MOVE_MOBILE : GROWTH_ON_MOVE;
+    const speedForMaxGrowth = isMobileLayout ? SPEED_FOR_MAX_GROWTH_MOBILE : SPEED_FOR_MAX_GROWTH;
+    let growthTarget = 1 + growthOnMove * Math.min(1, moveSpeed / speedForMaxGrowth);
+    if (isMobileLayout) {
+      growthTarget = Math.min(MAX_RADIUS_SCALE_MOBILE, growthTarget);
+    }
+    const radiusEase = isMobileLayout ? 0.22 : 0.15;
+    radiusScale += (growthTarget - radiusScale) * radiusEase;
+
+    if (currentX !== null && revealAlpha > 0.002 && logoLayer) {
+      ctx.save();
+      ctx.globalAlpha = MAX_OPACITY * revealAlpha;
+      ctx.drawImage(logoLayer, 0, 0, width, height);
+
+      // soft-edged circular spotlight mask
+      ctx.globalCompositeOperation = 'destination-in';
+      const beamX = currentX;
+      const beamY = currentY;
+      const grad = ctx.createRadialGradient(beamX, beamY, 0, beamX, beamY, revealRadius * radiusScale);
+      const moveBloom = isMobileLayout ? Math.min(1, Math.max(0, radiusScale - 1) / GROWTH_ON_MOVE_MOBILE) : 0;
+      const coreFraction = isMobileLayout
+        ? Math.min(0.32, REVEAL_CORE_FRACTION_MOBILE + moveBloom * REVEAL_CORE_BLOOM_MOBILE)
+        : REVEAL_CORE_FRACTION;
+      // sample a smooth cosine falloff (1 -> 0, easing at both ends) instead of a few
+      // hand-picked stops, which read as visible rings where the slope kinked
+      for (let i = 0; i <= GRADIENT_STOPS; i++) {
+        const t = i / GRADIENT_STOPS;
+        const alpha = beamMaskAlpha(t, coreFraction) * beamMaskIntensity();
+        grad.addColorStop(t, `rgba(255,255,255,${alpha})`);
+      }
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
+      ctx.restore();
+    }
+
+    requestAnimationFrame(render);
+  }
+
+  function updateTarget(newX, newY, opts) {
+    const trackSpeed = !opts || opts.trackSpeed !== false;
+    if (trackSpeed && targetX !== null) {
+      const dx = newX - targetX;
+      const dy = newY - targetY;
+      moveSpeed = Math.max(moveSpeed, Math.sqrt(dx * dx + dy * dy));
+    }
+    targetX = newX;
+    targetY = newY;
+    pointerActive = true;
+  }
+
+  function isDesktopPointerMode() {
+    return !isTouchDevice && width >= MOBILE_BREAKPOINT;
+  }
+
+  function cancelDesktopLeaveSequence() {
+    desktopLeavePhase = null;
+    desktopLeaveAnimating = false;
+    desktopLeaveDelayUntil = 0;
+  }
+
+  function startDesktopLeaveSequence() {
+    if (targetX === null || targetY === null) {
+      pointerActive = false;
+      return;
+    }
+    desktopLeaveHoldX = targetX;
+    desktopLeaveHoldY = targetY;
+    desktopLeavePhase = 'delay';
+    desktopLeaveDelayUntil = performance.now() + LEAVE_HOLD_MS;
+    desktopLeaveAnimating = true;
+    targetX = desktopLeaveHoldX;
+    targetY = desktopLeaveHoldY;
+  }
+
+  function handlePointerMove(e) {
+    if (isTouchDevice) return; // iOS/Android synthesize mousemove on tap — would spike bloom
+    cancelDesktopLeaveSequence();
+    const rect = hero.getBoundingClientRect();
+    updateTarget(e.clientX - rect.left, e.clientY - rect.top);
+  }
+
+  function handlePointerLeave() {
+    if (!isDesktopPointerMode()) {
+      pointerActive = false;
+      return;
+    }
+    startDesktopLeaveSequence();
+  }
+
+  function isInteractiveTouchTarget(e) {
+    if (!(e.target instanceof Element)) return false;
+    const el = e.target.closest('a, .motion-prompt, .motion-prompt__btn');
+    return el !== null && hero.contains(el);
+  }
+
+  function hasMotionApi() {
+    return typeof DeviceOrientationEvent !== 'undefined'
+      || typeof DeviceMotionEvent !== 'undefined';
+  }
+
+  function shouldOfferMotionPrompt() {
+    return isTouchDevice && hasMotionApi();
+  }
+
+  function setMotionPromptLabel(text) {
+    if (!motionPromptBtn) return;
+    const label = motionPromptBtn.querySelector('.motion-prompt__label');
+    if (label) label.textContent = text;
+    motionPromptBtn.setAttribute('aria-label', text);
+  }
+
+  function showMotionPrompt() {
+    if (!motionPrompt || motionEnabled || touchPanEnabled) return;
+    if (!shouldOfferMotionPrompt()) return;
+    motionPrompt.hidden = false;
+    motionPromptBtn?.classList.remove('is-dismissing');
+    setMotionPromptLabel(motionPromptDragOffer ? MOTION_PROMPT_COPY.drag : MOTION_PROMPT_COPY.tilt);
+  }
+
+  function hideMotionPrompt() {
+    if (!motionPrompt) return;
+    motionPrompt.hidden = true;
+    motionPromptBtn?.classList.remove('is-dismissing');
+    if (motionPromptBtn) motionPromptBtn.disabled = false;
+  }
+
+  function dismissMotionPromptAnimated() {
+    if (!motionPrompt || motionPrompt.hidden || !motionPromptBtn) {
+      hideMotionPrompt();
+      return;
+    }
+    if (motionPromptBtn.classList.contains('is-dismissing')) return;
+
+    motionPromptBtn.classList.add('is-dismissing');
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      motionPromptBtn.removeEventListener('transitionend', onTransitionEnd);
+      hideMotionPrompt();
+    };
+    const onTransitionEnd = (e) => {
+      if (e.target !== motionPromptBtn || e.propertyName !== 'opacity') return;
+      finish();
+    };
+    motionPromptBtn.addEventListener('transitionend', onTransitionEnd);
+    window.setTimeout(finish, MOTION_PROMPT_DISMISS_MS);
+  }
+
+  function panTipEligibleLayout() {
+    return width > 0 && width < MOBILE_BREAKPOINT;
+  }
+
+  function panTipContextKind() {
+    if (motionEnabled) return 'motion';
+    if (touchPanEnabled) return 'touch';
+    return null;
+  }
+
+  function panTipTrackingActive() {
+    return panTipEligibleLayout() && mobilePanActive() && panTipContextKind() !== null;
+  }
+
+  function spotlightDisplacementFromRest() {
+    const restX = centerX;
+    const restY = heroFocalY();
+    let max = 0;
+    if (currentX !== null && currentY !== null) {
+      max = Math.hypot(currentX - restX, currentY - restY);
+    }
+    if (targetX !== null && targetY !== null) {
+      max = Math.max(max, Math.hypot(targetX - restX, targetY - restY));
+    }
+    return max;
+  }
+
+  function resetPanTipIdleClock() {
+    panTipIdleSince = performance.now();
+    panTipMaxDisplacement = 0;
+  }
+
+  function hidePanTip() {
+    if (!panTipEl || panTipEl.hidden) return;
+    panTipEl.classList.remove('is-flashing');
+    panTipEl.hidden = true;
+    panTipFlashing = false;
+  }
+
+  function showPanTip(kind) {
+    if (!panTipEl || panTipShown || panTipFlashing) return;
+    const copy = PAN_TIP_COPY[kind];
+    if (!copy) return;
+    panTipShown = true;
+    panTipFlashing = true;
+    panTipEl.textContent = copy;
+    panTipEl.hidden = false;
+    panTipEl.classList.remove('is-flashing');
+    void panTipEl.offsetWidth;
+    panTipEl.classList.add('is-flashing');
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      window.setTimeout(() => {
+        panTipFlashing = false;
+        hidePanTip();
+      }, 2800);
+    } else {
+      panTipEl.addEventListener('animationend', () => {
+        panTipFlashing = false;
+        hidePanTip();
+      }, { once: true });
+    }
+  }
+
+  function updatePanTipIdle() {
+    if (panTipShown) return;
+    if (!panTipTrackingActive()) {
+      panTipIdleSince = 0;
+      panTipMaxDisplacement = 0;
+      return;
+    }
+    if (motionEnabled && motionCalibrating) {
+      resetPanTipIdleClock();
+      return;
+    }
+    if (!panTipIdleSince) resetPanTipIdleClock();
+
+    panTipMaxDisplacement = Math.max(panTipMaxDisplacement, spotlightDisplacementFromRest());
+    if (panTipMaxDisplacement >= PAN_TIP_MOVE_THRESHOLD) {
+      resetPanTipIdleClock();
+      return;
+    }
+
+    if (performance.now() - panTipIdleSince >= PAN_TIP_IDLE_MS) {
+      showPanTip(panTipContextKind());
+    }
+  }
+
+  function handleTouchStart(e) {
+    if (isInteractiveTouchTarget(e)) return;
+    if (touchPanEnabled && e.touches.length) {
+      const rect = hero.getBoundingClientRect();
+      const t = e.touches[0];
+      applyTouchPan(t.clientX - rect.left, t.clientY - rect.top);
+      return;
+    }
+    if (!motionEnabled && !touchPanEnabled && shouldOfferMotionPrompt()) {
+      showMotionPrompt();
+    }
+  }
+
+  function handleTouchMove(e) {
+    if (isInteractiveTouchTarget(e)) return;
+    e.preventDefault();
+    if (touchPanEnabled && e.touches.length) {
+      const rect = hero.getBoundingClientRect();
+      const t = e.touches[0];
+      applyTouchPan(t.clientX - rect.left, t.clientY - rect.top);
+    }
+  }
+
+  function handleTouchEnd() {
+    if (!isTouchDevice) {
+      pointerActive = false;
+    }
+  }
+
+  function initMobileSpotlight() {
+    if (!width || !height) return;
+    const restX = centerX;
+    const restY = heroFocalY();
+    spotRawTargetX = restX;
+    spotRawTargetY = restY;
+    targetX = restX;
+    targetY = restY;
+    currentX = restX;
+    currentY = restY;
+    pointerActive = true;
+    fadeOut = 1;
+    revealAlpha = 1;
+    moveSpeed = 0;
+    radiusScale = 1;
+  }
+
+  function clampSpotlight(x, y) {
+    const edgeX = width * MOTION_MARGIN;
+    const edgeY = height * MOTION_MARGIN;
+    return {
+      x: Math.min(width - edgeX, Math.max(edgeX, x)),
+      y: Math.min(height - edgeY, Math.max(edgeY, y)),
+    };
+  }
+
+  function holdSpotlightAtCenter() {
+    const restX = centerX;
+    const restY = heroFocalY();
+    spotRawTargetX = restX;
+    spotRawTargetY = restY;
+    updateTarget(restX, restY, { trackSpeed: false });
+  }
+
+  function beginMotionCalibration() {
+    motionCalibrating = true;
+    motionCalibrationBuffer = [];
+    motionBaseline = null;
+    motionGammaFromGravity = null;
+    latestOrientationGamma = null;
+    latestOrientationBeta = null;
+    initMobileSpotlight();
+  }
+
+  function finishMotionCalibration() {
+    if (!motionCalibrationBuffer.length) {
+      motionCalibrating = false;
+      return;
+    }
+
+    let gammaSum = 0;
+    let betaSum = 0;
+    for (let i = 0; i < motionCalibrationBuffer.length; i++) {
+      gammaSum += motionCalibrationBuffer[i].gamma;
+      betaSum += motionCalibrationBuffer[i].beta;
+    }
+    const count = motionCalibrationBuffer.length;
+    motionBaseline = { gamma: gammaSum / count, beta: betaSum / count };
+    motionCalibrating = false;
+    motionCalibrationBuffer = [];
+    holdSpotlightAtCenter();
+  }
+
+  function applyTouchPan(localX, localY) {
+    if (!width || !height) return;
+    const point = clampSpotlight(localX, localY);
+    updateTarget(point.x, point.y);
+  }
+
+  function enableTouchPanControl() {
+    touchPanEnabled = true;
+    initMobileSpotlight();
+    resetPanTipIdleClock();
+  }
+
+  function applyMotionTilt(gamma, beta) {
+    if (!width || !height) return;
+
+    if (motionCalibrating) {
+      motionCalibrationBuffer.push({ gamma, beta });
+      if (motionCalibrationBuffer.length >= MOTION_CALIBRATION_SAMPLES) {
+        finishMotionCalibration();
+      }
+      holdSpotlightAtCenter();
+      return;
+    }
+
+    if (motionBaseline === null) {
+      motionBaseline = { gamma, beta };
+      holdSpotlightAtCenter();
+      return;
+    }
+
+    const dGamma = gamma - motionBaseline.gamma;
+    const dBeta = beta - motionBaseline.beta;
+    const maxDx = width * (0.5 - MOTION_MARGIN);
+    const maxDy = height * (0.5 - MOTION_MARGIN);
+    const restY = heroFocalY();
+    const rawX = centerX - (dGamma / MOTION_GAMMA_RANGE) * maxDx * MOTION_PAN_GAIN_X;
+    const rawY = restY - (dBeta / MOTION_BETA_RANGE) * maxDy;
+    const point = clampSpotlight(rawX, rawY);
+    spotRawTargetX = point.x;
+    spotRawTargetY = point.y;
+    pointerActive = true;
+  }
+
+  function screenOrientationAngle() {
+    if (window.screen && window.screen.orientation && typeof window.screen.orientation.angle === 'number') {
+      return window.screen.orientation.angle;
+    }
+    if (typeof window.orientation === 'number') return window.orientation;
+    return 0;
+  }
+
+  function tiltFromGravity(x, y, z) {
+    let gx = x;
+    let gy = y;
+    const gz = z;
+    const angle = screenOrientationAngle();
+
+    if (angle === 90) {
+      const rotatedX = gx;
+      gx = -gy;
+      gy = rotatedX;
+    } else if (angle === -90 || angle === 270) {
+      const rotatedX = gx;
+      gx = gy;
+      gy = -rotatedX;
+    } else if (angle === 180) {
+      gx = -gx;
+      gy = -gy;
+    }
+
+    const beta = Math.atan2(-gz, Math.sqrt(gx * gx + gy * gy)) * (180 / Math.PI);
+    const gamma = Math.atan2(gx, gy) * (180 / Math.PI);
+    return { gamma, beta };
+  }
+
+  function resolveMotionGamma(orientationGamma) {
+    const gravityGamma = motionGammaFromGravity;
+    const hasGravityGamma = gravityGamma != null && !Number.isNaN(gravityGamma);
+
+    if (isIosDevice && hasGravityGamma) {
+      if (orientationGamma == null || Number.isNaN(orientationGamma)) {
+        return gravityGamma;
+      }
+      // iOS often reports 0 gamma while the accelerometer still sees roll.
+      if (Math.abs(orientationGamma) < 0.01) {
+        return gravityGamma;
+      }
+    }
+
+    if (orientationGamma != null && !Number.isNaN(orientationGamma)) {
+      return orientationGamma;
+    }
+    return hasGravityGamma ? gravityGamma : null;
+  }
+
+  function emitMotionTiltFromSensors(orientationGamma, beta) {
+    if (beta == null || Number.isNaN(beta)) return;
+    const gamma = resolveMotionGamma(orientationGamma);
+    if (gamma == null || Number.isNaN(gamma)) return;
+    applyMotionTilt(gamma, beta);
+  }
+
+  function handleDeviceOrientation(e) {
+    if (!motionEnabled) return;
+    if (e.beta == null || Number.isNaN(e.beta)) return;
+    latestOrientationGamma = e.gamma;
+    latestOrientationBeta = e.beta;
+    emitMotionTiltFromSensors(e.gamma, e.beta);
+  }
+
+  function handleDeviceMotion(e) {
+    if (!motionEnabled || !isIosDevice) return;
+    const g = e.accelerationIncludingGravity;
+    if (!g || g.x == null || g.y == null || g.z == null) return;
+    motionGammaFromGravity = tiltFromGravity(g.x, g.y, g.z).gamma;
+    if (latestOrientationBeta != null) {
+      emitMotionTiltFromSensors(latestOrientationGamma, latestOrientationBeta);
+    }
+  }
+
+  function resetMotionBaseline() {
+    if (!motionEnabled) {
+      motionBaseline = null;
+      return;
+    }
+    beginMotionCalibration();
+  }
+
+  function motionRequiresUserGesture() {
+    if (isIosDevice) return true;
+    return (typeof DeviceOrientationEvent !== 'undefined'
+      && typeof DeviceOrientationEvent.requestPermission === 'function')
+      || (typeof DeviceMotionEvent !== 'undefined'
+      && typeof DeviceMotionEvent.requestPermission === 'function');
+  }
+
+  async function requestMotionPermissionsFromClick() {
+    if (typeof DeviceOrientationEvent !== 'undefined'
+      && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      const orientationState = await DeviceOrientationEvent.requestPermission();
+      if (orientationState !== 'granted') return false;
+    } else if (typeof DeviceMotionEvent !== 'undefined'
+      && typeof DeviceMotionEvent.requestPermission === 'function') {
+      const motionState = await DeviceMotionEvent.requestPermission();
+      if (motionState !== 'granted') return false;
+    }
+
+    if (typeof DeviceMotionEvent !== 'undefined'
+      && typeof DeviceMotionEvent.requestPermission === 'function'
+      && typeof DeviceOrientationEvent !== 'undefined'
+      && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        await DeviceMotionEvent.requestPermission();
+      } catch (_) {}
+    }
+
+    return true;
+  }
+
+  function startMotionListeners() {
+    window.addEventListener('deviceorientation', handleDeviceOrientation, true);
+    if (isIosDevice) {
+      window.addEventListener('devicemotion', handleDeviceMotion, true);
+    }
+    motionEnabled = true;
+    beginMotionCalibration();
+    dismissMotionPromptAnimated();
+    resetPanTipIdleClock();
+  }
+
+  async function activateMotionFromUserClick() {
+    if (motionEnabled || motionActivationPending) return;
+
+    if (motionPromptDragOffer && !touchPanEnabled) {
+      motionActivationPending = true;
+      if (motionPromptBtn) motionPromptBtn.disabled = true;
+      enableTouchPanControl();
+      dismissMotionPromptAnimated();
+      motionActivationPending = false;
+      return;
+    }
+
+    motionActivationPending = true;
+    if (motionPromptBtn) motionPromptBtn.disabled = true;
+
+    try {
+      let granted = true;
+      if (motionRequiresUserGesture()) {
+        granted = await requestMotionPermissionsFromClick();
+      }
+      if (granted) {
+        startMotionListeners();
+      } else {
+        motionPromptDragOffer = true;
+        setMotionPromptLabel(MOTION_PROMPT_COPY.drag);
+        if (motionPromptBtn) motionPromptBtn.disabled = false;
+      }
+    } catch (_) {
+      motionPromptDragOffer = true;
+      setMotionPromptLabel(MOTION_PROMPT_COPY.drag);
+      if (motionPromptBtn) motionPromptBtn.disabled = false;
+    } finally {
+      motionActivationPending = false;
+    }
+  }
+
+  window.addEventListener('resize', resize);
+  hero.addEventListener('mousemove', handlePointerMove);
+  hero.addEventListener('mouseleave', handlePointerLeave);
+  // touchstart reveals immediately on tap/hold, not just once the finger starts dragging
+  hero.addEventListener('touchstart', handleTouchStart, { passive: true });
+  if (motionPrompt) {
+    motionPrompt.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+  }
+  if (motionPromptBtn) {
+    motionPromptBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      void activateMotionFromUserClick();
+    });
+  }
+  window.addEventListener('orientationchange', resetMotionBaseline);
+  if (window.screen && window.screen.orientation) {
+    window.screen.orientation.addEventListener('change', resetMotionBaseline);
+  }
+  hero.addEventListener('touchmove', handleTouchMove, { passive: false });
+  hero.addEventListener('touchend', handleTouchEnd);
+  hero.addEventListener('touchcancel', handleTouchEnd);
+
+  resize();
+  requestAnimationFrame(render);
+  if (isTouchDevice) {
+    initMobileSpotlight();
+    if (shouldOfferMotionPrompt()) {
+      showMotionPrompt();
+    } else {
+      enableTouchPanControl();
+      spotlightPower = 1;
+    }
+  }
+})();
+</script>
+
+</body>
+</html>
