@@ -23,9 +23,24 @@
   :root {
     --bg: #101010;
     --fg: #FFFCF5;
+    --font-display: "zuume", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-ui: "Funnel Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --type-display-lg: 2.375rem;
+    --type-display: 1.5rem;
+    --type-ui: 1rem;
+    --type-caption: 0.9375rem;
+    --leading-display: 1.1;
+    --leading-ui: 1.5;
+    --leading-caption: 1.35;
+    --tracking-display: normal;
+    --tracking-caption: 0.04em;
   }
 
   * { box-sizing: border-box; }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+  }
 
   html, body {
     margin: 0;
@@ -74,20 +89,34 @@
     touch-action: manipulation;
   }
 
-  .eyebrow, .nav-link, .enquiries {
-    font-family: "zuume", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    font-size: 1.5rem;
+  .eyebrow {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--type-display);
     font-weight: 700;
-    letter-spacing: normal;
+    line-height: var(--leading-display);
+    letter-spacing: var(--tracking-display);
+    text-transform: uppercase;
+    color: var(--fg);
+  }
+
+  .nav-link,
+  .enquiries a {
+    font-family: var(--font-display);
+    font-size: var(--type-display);
+    font-weight: 700;
+    line-height: var(--leading-display);
+    letter-spacing: var(--tracking-display);
     text-transform: uppercase;
     color: var(--fg);
     text-decoration: none;
+    transition: color 300ms ease;
   }
 
-  .nav-link, .enquiries a {
-    color: var(--fg);
-    text-decoration: none;
-    transition: color 300ms ease;
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
   }
 
   .nav-link:hover {
@@ -96,17 +125,14 @@
 
   .enquiries a {
     color: #C8F3FA;
-    transition: color 300ms ease;
+  }
+
+  .enquiries.footer-right a {
+    font-size: var(--type-display-lg);
   }
 
   .enquiries a:hover {
     color: #FFD16B;
-  }
-
-  .nav-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
   }
 
   .nav-link svg {
@@ -126,13 +152,22 @@
     fill: #FFD16B;
   }
 
-  .header-left { grid-area: header-left; justify-self: start; align-self: start; font-size: 2.375rem; }
+  .header-left {
+    grid-area: header-left;
+    justify-self: start;
+    align-self: start;
+    font-size: var(--type-display-lg);
+  }
 
   .header-right {
     grid-area: header-right;
     justify-self: end;
     align-self: start;
     text-align: right;
+  }
+
+  .tagline-plus {
+    color: #C8F3FA;
   }
 
   .footer-left {
@@ -225,10 +260,10 @@
       inset 1px 1px 0 rgba(255, 252, 245, 0.12),
       inset -1px -1px 0 rgba(0, 0, 0, 0.2);
     color: var(--fg);
-    font-family: "Funnel Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    font-size: 1rem;
+    font-family: var(--font-ui);
+    font-size: var(--type-ui);
     font-weight: 400;
-    line-height: 1.5;
+    line-height: var(--leading-ui);
     white-space: nowrap;
     cursor: pointer;
     touch-action: manipulation;
@@ -321,11 +356,11 @@
     max-width: min(18rem, 88vw);
     pointer-events: none;
     text-align: center;
-    font-family: "zuume", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    font-size: 0.9375rem;
+    font-family: var(--font-display);
+    font-size: var(--type-caption);
     font-weight: 700;
-    letter-spacing: 0.04em;
-    line-height: 1.35;
+    letter-spacing: var(--tracking-caption);
+    line-height: var(--leading-caption);
     text-transform: uppercase;
     color: var(--fg);
     opacity: 0;
@@ -367,8 +402,8 @@
   </div>
   <p class="pan-tip" id="panTip" role="status" aria-live="polite" hidden></p>
   <div class="layout">
-    <div class="eyebrow header-left">Studio Signal</div>
-    <div class="eyebrow header-right">specialist brand and web studio</div>
+    <h2 class="eyebrow header-left">Launching soon</h2>
+    <h1 class="eyebrow header-right">Specialist brand <span class="tagline-plus" aria-hidden="true">+</span> web studio</h1>
     <div class="footer-left">
       <a class="nav-link" href="https://www.instagram.com/studiosignalco/" target="_blank" rel="noopener noreferrer">Insta<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="external-link-arrow" d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
       <a class="nav-link" href="https://www.linkedin.com/company/studiosignalco" target="_blank" rel="noopener noreferrer">LinkedIn<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="external-link-arrow" d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
