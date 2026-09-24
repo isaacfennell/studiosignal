@@ -415,14 +415,7 @@
   const MOTION_GAMMA_RANGE = 21.5;   // degrees for full horizontal travel (+30% sensitivity vs 28)
   const MOTION_BETA_RANGE = 16.9;    // degrees for full vertical travel (+30% sensitivity vs 22)
   const MOTION_PAN_GAIN_X = 1.28;    // horizontal tilt reaches pan limits slightly faster than vertical
-  const MOTION_CALIBRATION_SAMPLES = 10; // average first gravity samples so mixed frames do not yank the beam
-  const MOTION_GRAVITY_SMOOTH = 0.22; // low-pass on gravity before angle extraction
-  const MOTION_PAN_ANGLE_SMOOTH = 0.18; // low-pass on pan angles — kills hand-tremor jitter
-  const MOTION_PAN_SPEED_MIN_PX = 2.8; // ignore sensor noise in beam bloom on motion pan
-  const MOTION_ORIENTATION_FALLBACK_MS = 500; // deviceorientation only if devicemotion never arrives
-  const MOTION_BASELINE_SETTLE_MS = 1400; // after tap: keep pan centred while grip/posture settles
-  const MOTION_BASELINE_SETTLE_BLEND = 0.06; // slow baseline follow during settle (raw noise safe)
-  const MOTION_BASELINE_SETTLE_BREAKOUT_DEG = 2.2; // deliberate tilt ends settle and hands control back
+  const MOTION_CALIBRATION_SAMPLES = 10; // average first samples so mixed sensor frames do not yank the beam
   const MOTION_LOGO_ZOOM_MOBILE = 1.65; // headroom for pan without cropping the mark off-layer
   const LOGO_LAYER_BLEED = 16;       // px padding so the full SVG is drawable inside the pan layer
   const LOGO_MOTION_ANCHOR_Y = 168.5 / 287; // viewBox Y below the STUDIO/SIGNAL row gap (not geometric centre)
@@ -475,16 +468,10 @@
   let motionPromptDragOffer = false;
   let motionCalibrating = false;
   let motionCalibrationBuffer = [];
-  let motionBaseline = null; // pan angles derived from calibrated gravity — spotlight rests at centre
-  let motionGravitySmoothed = null; // eased accelerationIncludingGravity (device frame)
-  let lastDeviceMotionAt = 0;
-  let motionBaselineSettlingUntil = 0;
-  let motionPrevSampleGamma = null;
-  let motionPrevSampleBeta = null;
-  let motionPanAnglesSmoothed = null;
-  let motionGravityPathActive = false;
-  let motionApplyRaf = 0;
-  let motionPendingGravity = null;
+  let motionBaseline = null; // gamma/beta when calibrated — spotlight rests at screen centre
+  let motionGammaFromGravity = null; // iOS often omits gamma on deviceorientation; gravity fills horizontal
+  let latestOrientationGamma = null;
+  let latestOrientationBeta = null;
   let prevRenderX = null;
   let prevRenderY = null;
   let logoPanTargetX = 0;
@@ -989,10 +976,7 @@
     if (trackSpeed) {
       const dx = panX - logoPanTargetX;
       const dy = panY - logoPanTargetY;
-      const dist = Math.hypot(dx, dy);
-      if (!motionEnabled || dist >= MOTION_PAN_SPEED_MIN_PX) {
-        moveSpeed = Math.max(moveSpeed, dist);
-      }
+      moveSpeed = Math.max(moveSpeed, Math.hypot(dx, dy));
     }
     logoPanTargetX = panX;
     logoPanTargetY = panY;
@@ -1005,15 +989,9 @@
     motionCalibrating = true;
     motionCalibrationBuffer = [];
     motionBaseline = null;
-    motionGravitySmoothed = null;
-    lastDeviceMotionAt = 0;
-    motionBaselineSettlingUntil = 0;
-    motionPrevSampleGamma = null;
-    motionPrevSampleBeta = null;
-    motionPanAnglesSmoothed = null;
-    motionGravityPathActive = false;
-    motionApplyRaf = 0;
-    motionPendingGravity = null;
+    motionGammaFromGravity = null;
+    latestOrientationGamma = null;
+    latestOrientationBeta = null;
     initMobileSpotlight();
   }
 
@@ -1023,46 +1001,17 @@
       return;
     }
 
-    const first = motionCalibrationBuffer[0];
-    if (first.gx != null && first.gy != null && first.gz != null) {
-      let gxSum = 0;
-      let gySum = 0;
-      let gzSum = 0;
-      for (let i = 0; i < motionCalibrationBuffer.length; i++) {
-        gxSum += motionCalibrationBuffer[i].gx;
-        gySum += motionCalibrationBuffer[i].gy;
-        gzSum += motionCalibrationBuffer[i].gz;
-      }
-      const count = motionCalibrationBuffer.length;
-      motionBaseline = panAnglesFromGravity(
-        gxSum / count,
-        gySum / count,
-        gzSum / count,
-      );
-    } else {
-      let gammaSum = 0;
-      let betaSum = 0;
-      for (let i = 0; i < motionCalibrationBuffer.length; i++) {
-        gammaSum += motionCalibrationBuffer[i].gamma;
-        betaSum += motionCalibrationBuffer[i].beta;
-      }
-      const count = motionCalibrationBuffer.length;
-      motionBaseline = { gamma: gammaSum / count, beta: betaSum / count };
+    let gammaSum = 0;
+    let betaSum = 0;
+    for (let i = 0; i < motionCalibrationBuffer.length; i++) {
+      gammaSum += motionCalibrationBuffer[i].gamma;
+      betaSum += motionCalibrationBuffer[i].beta;
     }
-
+    const count = motionCalibrationBuffer.length;
+    motionBaseline = { gamma: gammaSum / count, beta: betaSum / count };
     motionCalibrating = false;
     motionCalibrationBuffer = [];
-    motionBaselineSettlingUntil = performance.now() + MOTION_BASELINE_SETTLE_MS;
-    motionPrevSampleGamma = null;
-    motionPrevSampleBeta = null;
-    motionPanAnglesSmoothed = null;
     holdSpotlightAtCenter();
-  }
-
-  function nudgeMotionBaselineToward(gamma, beta, blend) {
-    if (!motionBaseline) return;
-    motionBaseline.gamma += wrapAngleDelta(gamma - motionBaseline.gamma) * blend;
-    motionBaseline.beta += (beta - motionBaseline.beta) * blend;
   }
 
   function applyTouchPan(localX, localY) {
@@ -1086,44 +1035,25 @@
     resetPanTipIdleClock();
   }
 
-  function wrapAngleDelta(degrees) {
-    let d = degrees;
-    while (d > 180) d -= 360;
-    while (d < -180) d += 360;
-    return d;
-  }
-
-  function applyMotionPanFromAngles(gamma, beta) {
+  function applyMotionTilt(gamma, beta) {
     if (!width || !height) return;
-    if (motionBaseline === null) {
-      motionBaseline = { gamma, beta };
+
+    if (motionCalibrating) {
+      motionCalibrationBuffer.push({ gamma, beta });
+      if (motionCalibrationBuffer.length >= MOTION_CALIBRATION_SAMPLES) {
+        finishMotionCalibration();
+      }
       holdSpotlightAtCenter();
-      motionPrevSampleGamma = gamma;
-      motionPrevSampleBeta = beta;
       return;
     }
 
-    const now = performance.now();
-    const sampleMotion = motionPrevSampleGamma != null
-      ? Math.hypot(
-        wrapAngleDelta(gamma - motionPrevSampleGamma),
-        beta - motionPrevSampleBeta,
-      )
-      : 0;
-
-    if (now < motionBaselineSettlingUntil) {
-      nudgeMotionBaselineToward(gamma, beta, MOTION_BASELINE_SETTLE_BLEND);
-      if (sampleMotion >= MOTION_BASELINE_SETTLE_BREAKOUT_DEG) {
-        motionBaselineSettlingUntil = 0;
-      } else {
-        holdSpotlightAtCenter();
-        motionPrevSampleGamma = gamma;
-        motionPrevSampleBeta = beta;
-        return;
-      }
+    if (motionBaseline === null) {
+      motionBaseline = { gamma, beta };
+      holdSpotlightAtCenter();
+      return;
     }
 
-    const dGamma = wrapAngleDelta(gamma - motionBaseline.gamma);
+    const dGamma = gamma - motionBaseline.gamma;
     const dBeta = beta - motionBaseline.beta;
     const maxDx = logoPanLimitX > 0 ? logoPanLimitX : width * (0.5 - MOTION_MARGIN);
     const maxDy = logoPanLimitY > 0 ? logoPanLimitY : height * (0.5 - MOTION_MARGIN);
@@ -1132,52 +1062,6 @@
     const panY = (dBeta / MOTION_BETA_RANGE) * maxDy;
     const pan = clampLogoPan(panX, panY);
     updateLogoPan(pan.x, pan.y);
-    motionPrevSampleGamma = gamma;
-    motionPrevSampleBeta = beta;
-  }
-
-  function applyMotionFromGravity(gx, gy, gz) {
-    if (!width || !height) return;
-    if (gx == null || gy == null || gz == null
-      || Number.isNaN(gx) || Number.isNaN(gy) || Number.isNaN(gz)) {
-      return;
-    }
-
-    if (motionCalibrating) {
-      motionCalibrationBuffer.push({ gx, gy, gz });
-      if (motionCalibrationBuffer.length >= MOTION_CALIBRATION_SAMPLES) {
-        finishMotionCalibration();
-      }
-      holdSpotlightAtCenter();
-      return;
-    }
-
-    const angles = panAnglesFromGravity(gx, gy, gz);
-    const smoothed = smoothPanAngles(angles.gamma, angles.beta);
-    applyMotionPanFromAngles(smoothed.gamma, smoothed.beta);
-  }
-
-  function smoothPanAngles(gamma, beta) {
-    if (!motionPanAnglesSmoothed) {
-      motionPanAnglesSmoothed = { gamma, beta };
-      return motionPanAnglesSmoothed;
-    }
-    const blend = MOTION_PAN_ANGLE_SMOOTH;
-    motionPanAnglesSmoothed.gamma += wrapAngleDelta(gamma - motionPanAnglesSmoothed.gamma) * blend;
-    motionPanAnglesSmoothed.beta += (beta - motionPanAnglesSmoothed.beta) * blend;
-    return motionPanAnglesSmoothed;
-  }
-
-  function smoothGravitySample(gx, gy, gz) {
-    if (!motionGravitySmoothed) {
-      motionGravitySmoothed = { gx, gy, gz };
-      return motionGravitySmoothed;
-    }
-    const blend = MOTION_GRAVITY_SMOOTH;
-    motionGravitySmoothed.gx += (gx - motionGravitySmoothed.gx) * blend;
-    motionGravitySmoothed.gy += (gy - motionGravitySmoothed.gy) * blend;
-    motionGravitySmoothed.gz += (gz - motionGravitySmoothed.gz) * blend;
-    return motionGravitySmoothed;
   }
 
   function screenOrientationAngle() {
@@ -1188,7 +1072,7 @@
     return 0;
   }
 
-  function panAnglesFromGravity(x, y, z) {
+  function tiltFromGravity(x, y, z) {
     let gx = x;
     let gy = y;
     const gz = z;
@@ -1212,52 +1096,49 @@
     return { gamma, beta };
   }
 
-  function handleDeviceOrientation(e) {
-    if (!motionEnabled) return;
-    if (motionGravityPathActive) return;
-    if (performance.now() - lastDeviceMotionAt < MOTION_ORIENTATION_FALLBACK_MS) return;
-    if (e.beta == null || Number.isNaN(e.beta)) return;
-    if (e.gamma == null || Number.isNaN(e.gamma)) return;
+  function resolveMotionGamma(orientationGamma) {
+    const gravityGamma = motionGammaFromGravity;
+    const hasGravityGamma = gravityGamma != null && !Number.isNaN(gravityGamma);
 
-    if (motionCalibrating) {
-      motionCalibrationBuffer.push({ gamma: e.gamma, beta: e.beta });
-      if (motionCalibrationBuffer.length >= MOTION_CALIBRATION_SAMPLES) {
-        finishMotionCalibration();
+    if (isIosDevice && hasGravityGamma) {
+      if (orientationGamma == null || Number.isNaN(orientationGamma)) {
+        return gravityGamma;
       }
-      holdSpotlightAtCenter();
-      return;
+      // iOS often reports 0 gamma while the accelerometer still sees roll.
+      if (Math.abs(orientationGamma) < 0.01) {
+        return gravityGamma;
+      }
     }
 
-    const smoothed = smoothPanAngles(e.gamma, e.beta);
-    applyMotionPanFromAngles(smoothed.gamma, smoothed.beta);
+    if (orientationGamma != null && !Number.isNaN(orientationGamma)) {
+      return orientationGamma;
+    }
+    return hasGravityGamma ? gravityGamma : null;
   }
 
-  function flushMotionFromGravity() {
-    motionApplyRaf = 0;
-    const sample = motionPendingGravity;
-    motionPendingGravity = null;
-    if (!sample || !motionEnabled) return;
-    applyMotionFromGravity(sample.gx, sample.gy, sample.gz);
+  function emitMotionTiltFromSensors(orientationGamma, beta) {
+    if (beta == null || Number.isNaN(beta)) return;
+    const gamma = resolveMotionGamma(orientationGamma);
+    if (gamma == null || Number.isNaN(gamma)) return;
+    applyMotionTilt(gamma, beta);
   }
 
-  function scheduleMotionFromGravity(gx, gy, gz) {
-    motionPendingGravity = { gx, gy, gz };
-    if (motionApplyRaf) return;
-    motionApplyRaf = requestAnimationFrame(flushMotionFromGravity);
+  function handleDeviceOrientation(e) {
+    if (!motionEnabled) return;
+    if (e.beta == null || Number.isNaN(e.beta)) return;
+    latestOrientationGamma = e.gamma;
+    latestOrientationBeta = e.beta;
+    emitMotionTiltFromSensors(e.gamma, e.beta);
   }
 
   function handleDeviceMotion(e) {
-    if (!motionEnabled) return;
+    if (!motionEnabled || !isIosDevice) return;
     const g = e.accelerationIncludingGravity;
     if (!g || g.x == null || g.y == null || g.z == null) return;
-    lastDeviceMotionAt = performance.now();
-    motionGravityPathActive = true;
-    const smoothed = smoothGravitySample(g.x, g.y, g.z);
-    if (motionCalibrating) {
-      applyMotionFromGravity(smoothed.gx, smoothed.gy, smoothed.gz);
-      return;
+    motionGammaFromGravity = tiltFromGravity(g.x, g.y, g.z).gamma;
+    if (latestOrientationBeta != null) {
+      emitMotionTiltFromSensors(latestOrientationGamma, latestOrientationBeta);
     }
-    scheduleMotionFromGravity(smoothed.gx, smoothed.gy, smoothed.gz);
   }
 
   function resetMotionBaseline() {
@@ -1301,7 +1182,9 @@
 
   function startMotionListeners() {
     window.addEventListener('deviceorientation', handleDeviceOrientation, true);
-    window.addEventListener('devicemotion', handleDeviceMotion, true);
+    if (isIosDevice) {
+      window.addEventListener('devicemotion', handleDeviceMotion, true);
+    }
     motionEnabled = true;
     buildLogoLayer();
     beginMotionCalibration();
