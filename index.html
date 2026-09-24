@@ -135,10 +135,6 @@
     text-align: right;
   }
 
-  .header-right-plus {
-    color: #C8F3FA;
-  }
-
   .footer-left {
     grid-area: footer-left;
     justify-self: start;
@@ -364,7 +360,7 @@
   <p class="pan-tip" id="panTip" role="status" aria-live="polite" hidden></p>
   <div class="layout">
     <div class="eyebrow header-left">Studio Signal</div>
-    <div class="eyebrow header-right">Branding <span class="header-right-plus" aria-hidden="true">+</span> web that light the way</div>
+    <div class="eyebrow header-right">Branding <span aria-hidden="true">+</span> web that light the way</div>
     <div class="footer-left">
       <a class="nav-link" href="https://www.instagram.com/studiosignalco/" target="_blank" rel="noopener noreferrer">Insta<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="external-link-arrow" d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
       <a class="nav-link" href="https://www.linkedin.com/company/studiosignalco" target="_blank" rel="noopener noreferrer">LinkedIn<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="external-link-arrow" d="M6.66665 0L8.86198 2.19533L4.19531 6.862L5.13798 7.80467L9.80465 3.138L12 5.33333V0H6.66665Z" fill="currentColor"/><path d="M10.6667 10.6667H1.33333V1.33333H6L4.66667 0H1.33333C0.598 0 0 0.598 0 1.33333V10.6667C0 11.402 0.598 12 1.33333 12H10.6667C11.402 12 12 11.402 12 10.6667V7.33333L10.6667 6V10.6667Z" fill="currentColor"/></svg></a>
@@ -417,6 +413,8 @@
   const MOTION_PAN_GAIN_X = 1.28;    // horizontal tilt reaches pan limits slightly faster than vertical
   const MOTION_CALIBRATION_SAMPLES = 10; // average first samples so mixed sensor frames do not yank the beam
   const MOTION_LOGO_ZOOM_MOBILE = 1.65; // headroom for pan without cropping the mark off-layer
+  const MOBILE_PAN_X_RANGE_FRACTION = 1 / 3; // horizontal: edge travels ⅓ toward centre (not full half-logo)
+  const MOBILE_FOCAL_Y_SHIFT = 0.15; // nudge logo + beam up on small screens (share of hero height)
   const LOGO_LAYER_BLEED = 16;       // px padding so the full SVG is drawable inside the pan layer
   const LOGO_MOTION_ANCHOR_Y = 168.5 / 287; // viewBox Y below the STUDIO/SIGNAL row gap (not geometric centre)
   const PAN_TARGET_EASE = 0.22;      // filters noisy tilt/touch into pan target (keeps range/sensitivity)
@@ -531,6 +529,10 @@
     return isTouchDevice && width < MOBILE_BREAKPOINT && (motionEnabled || touchPanEnabled);
   }
 
+  function heroFocalY() {
+    return width < MOBILE_BREAKPOINT ? centerY - height * MOBILE_FOCAL_Y_SHIFT : centerY;
+  }
+
   function computeRevealRadius(w) {
     if (w < MOBILE_BREAKPOINT) {
       const base = Math.min(
@@ -569,7 +571,7 @@
       logoLayerPadY = Math.ceil(overflowY + LOGO_LAYER_BLEED);
       layerWidth = width + logoLayerPadX * 2;
       layerHeight = height + logoLayerPadY * 2;
-      logoPanLimitX = panHalfWidth;
+      logoPanLimitX = panHalfWidth * MOBILE_PAN_X_RANGE_FRACTION;
       logoPanLimitY = overflowY;
     } else {
       logoPanLimitX = 0;
@@ -583,7 +585,7 @@
     lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const focalX = logoLayerPadX + centerX;
-    const focalY = logoLayerPadY + centerY;
+    const focalY = logoLayerPadY + (isMobileLayout ? heroFocalY() : centerY);
     const drawX = focalX - logoW / 2;
     const drawY = isMobileLayout
       ? focalY - LOGO_MOTION_ANCHOR_Y * logoH
@@ -608,7 +610,7 @@
       logoPanCurrentX += (logoPanTargetX - logoPanCurrentX) * pointerEase;
       logoPanCurrentY += (logoPanTargetY - logoPanCurrentY) * pointerEase;
       currentX = centerX;
-      currentY = centerY;
+      currentY = heroFocalY();
     } else if (targetX !== null) {
       if (currentX === null) { currentX = targetX; currentY = targetY; }
       currentX += (targetX - currentX) * pointerEase;
@@ -701,7 +703,7 @@
       // soft-edged circular spotlight mask
       ctx.globalCompositeOperation = 'destination-in';
       const beamX = logoPanMode ? centerX : currentX;
-      const beamY = logoPanMode ? centerY : currentY;
+      const beamY = logoPanMode ? heroFocalY() : currentY;
       const grad = ctx.createRadialGradient(beamX, beamY, 0, beamX, beamY, revealRadius * radiusScale);
       const moveBloom = isMobileLayout ? Math.min(1, Math.max(0, radiusScale - 1) / GROWTH_ON_MOVE_MOBILE) : 0;
       const coreFraction = isMobileLayout
@@ -945,9 +947,9 @@
   function initMobileSpotlight() {
     if (!width || !height) return;
     targetX = centerX;
-    targetY = centerY;
+    targetY = heroFocalY();
     currentX = centerX;
-    currentY = centerY;
+    currentY = heroFocalY();
     logoPanRawTargetX = 0;
     logoPanRawTargetY = 0;
     logoPanTargetX = 0;
@@ -977,14 +979,14 @@
     logoPanRawTargetY = 0;
     logoPanTargetX = 0;
     logoPanTargetY = 0;
-    updateTarget(centerX, centerY, { trackSpeed: false });
+    updateTarget(centerX, heroFocalY(), { trackSpeed: false });
   }
 
   function updateLogoPan(panX, panY) {
     logoPanRawTargetX = panX;
     logoPanRawTargetY = panY;
     targetX = centerX;
-    targetY = centerY;
+    targetY = heroFocalY();
     pointerActive = true;
   }
 
@@ -1024,7 +1026,7 @@
     const rangeX = width * (0.5 - MOTION_MARGIN);
     const rangeY = height * (0.5 - MOTION_MARGIN);
     const normX = rangeX > 0 ? (localX - centerX) / rangeX : 0;
-    const normY = rangeY > 0 ? (localY - centerY) / rangeY : 0;
+    const normY = rangeY > 0 ? (localY - heroFocalY()) / rangeY : 0;
     const panX = normX * maxDx * MOTION_PAN_GAIN_X;
     const panY = normY * maxDy;
     const pan = clampLogoPan(panX, panY);
