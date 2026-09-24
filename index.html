@@ -455,7 +455,7 @@
   const MOTION_BETA_RANGE = 16.9;    // degrees for full vertical travel (+30% sensitivity vs 22)
   const MOTION_PAN_GAIN_X = 1.28;    // horizontal tilt reaches pan limits slightly faster than vertical
   const MOTION_CALIBRATION_SAMPLES = 10; // average first samples so mixed sensor frames do not yank the beam
-  const MOBILE_FOCAL_Y_SHIFT = 0.06; // nudge logo + beam rest position up on small screens (share of hero height)
+  const MOBILE_FOCAL_Y_SHIFT = 0.03; // fallback when layout metrics are unavailable (share of hero height, subtracted from centre)
   const LOGO_MOTION_ANCHOR_Y = 168.5 / 287; // viewBox Y below the STUDIO/SIGNAL row gap (not geometric centre)
   const PAN_TARGET_EASE = 0.22;      // filters noisy tilt into spotlight target (keeps range/sensitivity)
   const POINTER_EASE_MOTION = 0.17;  // how quickly the beam catches the target on mobile
@@ -549,9 +549,10 @@
     canvas.style.height = height + 'px';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     revealRadius = computeRevealRadius(width);
+    const focalY = heroFocalY();
     hero.style.setProperty(
       '--hero-focal-y-shift',
-      width < MOBILE_BREAKPOINT ? `${height * MOBILE_FOCAL_Y_SHIFT}px` : '0px'
+      width < MOBILE_BREAKPOINT ? `${centerY - focalY}px` : '0px'
     );
     buildLogoLayer();
     if (isTouchDevice && !motionEnabled && !touchPanEnabled) {
@@ -564,7 +565,22 @@
   }
 
   function heroFocalY() {
-    return width < MOBILE_BREAKPOINT ? centerY - height * MOBILE_FOCAL_Y_SHIFT : centerY;
+    if (width >= MOBILE_BREAKPOINT) return centerY;
+
+    const layout = hero.querySelector('.layout');
+    const headerLeft = layout && layout.querySelector('.header-left');
+    const headerRight = layout && layout.querySelector('.header-right');
+    const footerLeft = layout && layout.querySelector('.footer-left');
+    if (!headerLeft || !headerRight || !footerLeft) {
+      return centerY - height * MOBILE_FOCAL_Y_SHIFT;
+    }
+
+    const heroRect = hero.getBoundingClientRect();
+    const topEdge = headerLeft.getBoundingClientRect().bottom - heroRect.top;
+    const bottomBlockTop = headerRight.getBoundingClientRect().top - heroRect.top;
+    const bottomBlockBottom = footerLeft.getBoundingClientRect().bottom - heroRect.top;
+    const bottomBlockMid = (bottomBlockTop + bottomBlockBottom) * 0.5;
+    return (topEdge + bottomBlockMid) * 0.5;
   }
 
   function computeRevealRadius(w) {
