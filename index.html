@@ -420,14 +420,12 @@
   const MOTION_BETA_RANGE = 16.9;    // degrees for full vertical travel (+30% sensitivity vs 22)
   const MOTION_PAN_GAIN_X = 1.28;    // horizontal tilt reaches pan limits slightly faster than vertical
   const MOTION_CALIBRATION_SAMPLES = 10; // average first samples so mixed sensor frames do not yank the beam
-  const MOTION_LOGO_ZOOM_MOBILE = 1.65; // headroom for pan without cropping the mark off-layer
-  const MOBILE_FOCAL_Y_SHIFT = 0.06; // nudge logo + beam up on small screens (share of hero height)
-  const LOGO_LAYER_BLEED = 16;       // px padding so the full SVG is drawable inside the pan layer
+  const MOBILE_FOCAL_Y_SHIFT = 0.06; // nudge logo + beam rest position up on small screens (share of hero height)
   const LOGO_MOTION_ANCHOR_Y = 168.5 / 287; // viewBox Y below the STUDIO/SIGNAL row gap (not geometric centre)
-  const PAN_TARGET_EASE = 0.22;      // filters noisy tilt/touch into pan target (keeps range/sensitivity)
-  const POINTER_EASE_MOTION = 0.17;  // how quickly the panned logo catches the target
+  const PAN_TARGET_EASE = 0.22;      // filters noisy tilt into spotlight target (keeps range/sensitivity)
+  const POINTER_EASE_MOTION = 0.17;  // how quickly the beam catches the target on mobile
   const PAN_TIP_IDLE_MS = 4000;
-  const PAN_TIP_MOVE_THRESHOLD = 18; // px — max logo pan from centre in the idle window
+  const PAN_TIP_MOVE_THRESHOLD = 18; // px — max beam travel from rest in the idle window
   const PAN_TIP_COPY = {
     motion: 'Tilt your phone to light the way',
     touch: 'Drag to light the way',
@@ -437,7 +435,7 @@
     drag: 'Tap and drag to explore',
   };
   const MOTION_PROMPT_DISMISS_MS = 480;
-  const isTouchDevice = matchMedia('(hover: none)').matches; // mobile: centre beam + device tilt
+  const isTouchDevice = matchMedia('(hover: none)').matches; // mobile: static logo, moving spotlight
   const isIosDevice = (() => {
     if (typeof navigator === 'undefined') return false;
     const ua = navigator.userAgent || '';
@@ -447,7 +445,7 @@
   let dpr = Math.min(window.devicePixelRatio || 1, 2);
   let width = 0, height = 0;
   let centerX = 0, centerY = 0;
-  let logoLayer = null; // offscreen canvas holding the oversized, static logo mark
+  let logoLayer = null; // offscreen canvas holding the static logo mark
 
   const bgLogoImg = new Image();
   let bgLogoLoaded = false;
@@ -480,18 +478,8 @@
   let latestOrientationBeta = null;
   let prevRenderX = null;
   let prevRenderY = null;
-  let logoPanRawTargetX = 0;
-  let logoPanRawTargetY = 0;
-  let logoPanTargetX = 0;
-  let logoPanTargetY = 0;
-  let logoPanCurrentX = 0;
-  let logoPanCurrentY = 0;
-  let prevLogoPanX = null;
-  let prevLogoPanY = null;
-  let logoLayerPadX = 0;
-  let logoLayerPadY = 0;
-  let logoPanLimitX = 0;
-  let logoPanLimitY = 0;
+  let spotRawTargetX = 0;
+  let spotRawTargetY = 0;
   let panTipIdleSince = 0;
   let panTipMaxDisplacement = 0;
   let panTipShown = false;
@@ -559,70 +547,38 @@
     if (!bgLogoLoaded || !width || !height) return;
 
     const isMobileLayout = width < MOBILE_BREAKPOINT;
-    const motionLayer = isMobileLayout && (motionEnabled || touchPanEnabled);
-    let logoW = isMobileLayout
+    const logoW = isMobileLayout
       ? Math.min(Math.max(0, width - LOGO_INSET_MOBILE * 2), LOGO_MAX_WIDTH)
       : Math.min(width * LOGO_WIDTH_RATIO, LOGO_MAX_WIDTH);
-    if (isMobileLayout) {
-      logoW *= MOTION_LOGO_ZOOM_MOBILE;
-    }
     const aspect = bgLogoImg.naturalHeight / bgLogoImg.naturalWidth;
     const logoH = logoW * aspect;
 
-    logoLayerPadX = 0;
-    logoLayerPadY = 0;
-    let layerWidth = width;
-    let layerHeight = height;
-
-    if (motionLayer) {
-      const overflowY = Math.max(0, (logoH - height) / 2);
-      // Beam is centred: bring each logo edge under the torch, not just to the screen edge.
-      const panHalfWidth = logoW / 2;
-      logoLayerPadX = Math.ceil(panHalfWidth + LOGO_LAYER_BLEED);
-      logoLayerPadY = Math.ceil(overflowY + LOGO_LAYER_BLEED);
-      layerWidth = width + logoLayerPadX * 2;
-      layerHeight = height + logoLayerPadY * 2;
-      logoPanLimitX = logoW / 3;
-      logoPanLimitY = overflowY;
-    } else {
-      logoPanLimitX = 0;
-      logoPanLimitY = 0;
-    }
-
     logoLayer = document.createElement('canvas');
-    logoLayer.width = Math.round(layerWidth * dpr);
-    logoLayer.height = Math.round(layerHeight * dpr);
+    logoLayer.width = Math.round(width * dpr);
+    logoLayer.height = Math.round(height * dpr);
     const lctx = logoLayer.getContext('2d');
     lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const focalX = logoLayerPadX + centerX;
-    const focalY = logoLayerPadY + (isMobileLayout ? heroFocalY() : centerY);
-    const drawX = focalX - logoW / 2;
+    const focalY = isMobileLayout ? heroFocalY() : centerY;
+    const drawX = centerX - logoW / 2;
     const drawY = isMobileLayout
       ? focalY - LOGO_MOTION_ANCHOR_Y * logoH
       : focalY - logoH / 2;
     lctx.drawImage(bgLogoImg, drawX, drawY, logoW, logoH);
   }
 
-  function useLogoPanMode() {
-    return mobilePanActive();
-  }
-
   function render() {
     ctx.clearRect(0, 0, width, height);
 
     const pointerEase = isTouchDevice ? POINTER_EASE_MOTION : POINTER_EASE;
-    const logoPanMode = useLogoPanMode();
+
+    if (mobilePanActive() && motionEnabled && targetX !== null) {
+      targetX += (spotRawTargetX - targetX) * PAN_TARGET_EASE;
+      targetY += (spotRawTargetY - targetY) * PAN_TARGET_EASE;
+    }
 
     // ease the glow position toward the pointer for a gentle trailing feel
-    if (logoPanMode) {
-      logoPanTargetX += (logoPanRawTargetX - logoPanTargetX) * PAN_TARGET_EASE;
-      logoPanTargetY += (logoPanRawTargetY - logoPanTargetY) * PAN_TARGET_EASE;
-      logoPanCurrentX += (logoPanTargetX - logoPanCurrentX) * pointerEase;
-      logoPanCurrentY += (logoPanTargetY - logoPanCurrentY) * pointerEase;
-      currentX = centerX;
-      currentY = heroFocalY();
-    } else if (targetX !== null) {
+    if (targetX !== null) {
       if (currentX === null) { currentX = targetX; currentY = targetY; }
       currentX += (targetX - currentX) * pointerEase;
       currentY += (targetY - currentY) * pointerEase;
@@ -658,30 +614,17 @@
     spotlightPower += (powerTarget - spotlightPower) * BEAM_POWER_EASE;
 
     const isMobileLayout = width < MOBILE_BREAKPOINT;
-    if (logoPanMode && prevLogoPanX !== null) {
-      const frameDx = logoPanCurrentX - prevLogoPanX;
-      const frameDy = logoPanCurrentY - prevLogoPanY;
-      moveSpeed = Math.max(moveSpeed, Math.hypot(frameDx, frameDy));
-      prevLogoPanX = logoPanCurrentX;
-      prevLogoPanY = logoPanCurrentY;
-    } else if (isMobileLayout && mobilePanActive() && !useLogoPanMode() && currentX !== null && prevRenderX !== null) {
+    if (isMobileLayout && mobilePanActive() && currentX !== null && prevRenderX !== null) {
       const frameDx = currentX - prevRenderX;
       const frameDy = currentY - prevRenderY;
       moveSpeed = Math.max(moveSpeed, Math.hypot(frameDx, frameDy));
     }
-    if (!logoPanMode) {
-      if (currentX !== null) {
-        prevRenderX = currentX;
-        prevRenderY = currentY;
-      } else {
-        prevRenderX = null;
-        prevRenderY = null;
-      }
-      prevLogoPanX = null;
-      prevLogoPanY = null;
-    } else if (prevLogoPanX === null) {
-      prevLogoPanX = logoPanCurrentX;
-      prevLogoPanY = logoPanCurrentY;
+    if (currentX !== null) {
+      prevRenderX = currentX;
+      prevRenderY = currentY;
+    } else {
+      prevRenderX = null;
+      prevRenderY = null;
     }
 
     updatePanTipIdle();
@@ -700,21 +643,12 @@
     if (currentX !== null && revealAlpha > 0.002 && logoLayer) {
       ctx.save();
       ctx.globalAlpha = MAX_OPACITY * revealAlpha;
-      if (logoPanMode) {
-        // Source rect is in the layer bitmap's pixel space (layer is width/height × dpr).
-        const srcX = (logoLayerPadX - logoPanCurrentX) * dpr;
-        const srcY = (logoLayerPadY - logoPanCurrentY) * dpr;
-        const srcW = width * dpr;
-        const srcH = height * dpr;
-        ctx.drawImage(logoLayer, srcX, srcY, srcW, srcH, 0, 0, width, height);
-      } else {
-        ctx.drawImage(logoLayer, 0, 0, width, height);
-      }
+      ctx.drawImage(logoLayer, 0, 0, width, height);
 
       // soft-edged circular spotlight mask
       ctx.globalCompositeOperation = 'destination-in';
-      const beamX = logoPanMode ? centerX : currentX;
-      const beamY = logoPanMode ? heroFocalY() : currentY;
+      const beamX = currentX;
+      const beamY = currentY;
       const grad = ctx.createRadialGradient(beamX, beamY, 0, beamX, beamY, revealRadius * radiusScale);
       const moveBloom = isMobileLayout ? Math.min(1, Math.max(0, radiusScale - 1) / GROWTH_ON_MOVE_MOBILE) : 0;
       const coreFraction = isMobileLayout
@@ -860,10 +794,17 @@
     return panTipEligibleLayout() && mobilePanActive() && panTipContextKind() !== null;
   }
 
-  function logoPanDisplacement() {
-    const current = Math.hypot(logoPanCurrentX, logoPanCurrentY);
-    const target = Math.hypot(logoPanTargetX, logoPanTargetY);
-    return Math.max(current, target);
+  function spotlightDisplacementFromRest() {
+    const restX = centerX;
+    const restY = heroFocalY();
+    let max = 0;
+    if (currentX !== null && currentY !== null) {
+      max = Math.hypot(currentX - restX, currentY - restY);
+    }
+    if (targetX !== null && targetY !== null) {
+      max = Math.max(max, Math.hypot(targetX - restX, targetY - restY));
+    }
+    return max;
   }
 
   function resetPanTipIdleClock() {
@@ -915,7 +856,7 @@
     }
     if (!panTipIdleSince) resetPanTipIdleClock();
 
-    panTipMaxDisplacement = Math.max(panTipMaxDisplacement, logoPanDisplacement());
+    panTipMaxDisplacement = Math.max(panTipMaxDisplacement, spotlightDisplacementFromRest());
     if (panTipMaxDisplacement >= PAN_TIP_MOVE_THRESHOLD) {
       resetPanTipIdleClock();
       return;
@@ -957,18 +898,14 @@
 
   function initMobileSpotlight() {
     if (!width || !height) return;
-    targetX = centerX;
-    targetY = heroFocalY();
-    currentX = centerX;
-    currentY = heroFocalY();
-    logoPanRawTargetX = 0;
-    logoPanRawTargetY = 0;
-    logoPanTargetX = 0;
-    logoPanTargetY = 0;
-    logoPanCurrentX = 0;
-    logoPanCurrentY = 0;
-    prevLogoPanX = null;
-    prevLogoPanY = null;
+    const restX = centerX;
+    const restY = heroFocalY();
+    spotRawTargetX = restX;
+    spotRawTargetY = restY;
+    targetX = restX;
+    targetY = restY;
+    currentX = restX;
+    currentY = restY;
     pointerActive = true;
     fadeOut = 1;
     revealAlpha = 1;
@@ -976,29 +913,21 @@
     radiusScale = 1;
   }
 
-  function clampLogoPan(panX, panY) {
-    const maxDx = logoPanLimitX || width * (0.5 - MOTION_MARGIN);
-    const maxDy = logoPanLimitY || height * (0.5 - MOTION_MARGIN);
+  function clampSpotlight(x, y) {
+    const edgeX = width * MOTION_MARGIN;
+    const edgeY = height * MOTION_MARGIN;
     return {
-      x: Math.min(maxDx, Math.max(-maxDx, panX)),
-      y: Math.min(maxDy, Math.max(-maxDy, panY)),
+      x: Math.min(width - edgeX, Math.max(edgeX, x)),
+      y: Math.min(height - edgeY, Math.max(edgeY, y)),
     };
   }
 
   function holdSpotlightAtCenter() {
-    logoPanRawTargetX = 0;
-    logoPanRawTargetY = 0;
-    logoPanTargetX = 0;
-    logoPanTargetY = 0;
-    updateTarget(centerX, heroFocalY(), { trackSpeed: false });
-  }
-
-  function updateLogoPan(panX, panY) {
-    logoPanRawTargetX = panX;
-    logoPanRawTargetY = panY;
-    targetX = centerX;
-    targetY = heroFocalY();
-    pointerActive = true;
+    const restX = centerX;
+    const restY = heroFocalY();
+    spotRawTargetX = restX;
+    spotRawTargetY = restY;
+    updateTarget(restX, restY, { trackSpeed: false });
   }
 
   function beginMotionCalibration() {
@@ -1032,21 +961,12 @@
 
   function applyTouchPan(localX, localY) {
     if (!width || !height) return;
-    const maxDx = logoPanLimitX > 0 ? logoPanLimitX : width * (0.5 - MOTION_MARGIN);
-    const maxDy = logoPanLimitY > 0 ? logoPanLimitY : height * (0.5 - MOTION_MARGIN);
-    const rangeX = width * (0.5 - MOTION_MARGIN);
-    const rangeY = height * (0.5 - MOTION_MARGIN);
-    const normX = rangeX > 0 ? (localX - centerX) / rangeX : 0;
-    const normY = rangeY > 0 ? (localY - heroFocalY()) / rangeY : 0;
-    const panX = normX * maxDx * MOTION_PAN_GAIN_X;
-    const panY = normY * maxDy;
-    const pan = clampLogoPan(panX, panY);
-    updateLogoPan(pan.x, pan.y);
+    const point = clampSpotlight(localX, localY);
+    updateTarget(point.x, point.y);
   }
 
   function enableTouchPanControl() {
     touchPanEnabled = true;
-    buildLogoLayer();
     initMobileSpotlight();
     resetPanTipIdleClock();
   }
@@ -1071,13 +991,15 @@
 
     const dGamma = gamma - motionBaseline.gamma;
     const dBeta = beta - motionBaseline.beta;
-    const maxDx = logoPanLimitX > 0 ? logoPanLimitX : width * (0.5 - MOTION_MARGIN);
-    const maxDy = logoPanLimitY > 0 ? logoPanLimitY : height * (0.5 - MOTION_MARGIN);
-    // First-person pan: fixed beam, logo shifts opposite to head tilt (up/left → logo down/right).
-    const panX = (dGamma / MOTION_GAMMA_RANGE) * maxDx * MOTION_PAN_GAIN_X;
-    const panY = (dBeta / MOTION_BETA_RANGE) * maxDy;
-    const pan = clampLogoPan(panX, panY);
-    updateLogoPan(pan.x, pan.y);
+    const maxDx = width * (0.5 - MOTION_MARGIN);
+    const maxDy = height * (0.5 - MOTION_MARGIN);
+    const restY = heroFocalY();
+    const rawX = centerX - (dGamma / MOTION_GAMMA_RANGE) * maxDx * MOTION_PAN_GAIN_X;
+    const rawY = restY - (dBeta / MOTION_BETA_RANGE) * maxDy;
+    const point = clampSpotlight(rawX, rawY);
+    spotRawTargetX = point.x;
+    spotRawTargetY = point.y;
+    pointerActive = true;
   }
 
   function screenOrientationAngle() {
@@ -1202,7 +1124,6 @@
       window.addEventListener('devicemotion', handleDeviceMotion, true);
     }
     motionEnabled = true;
-    buildLogoLayer();
     beginMotionCalibration();
     dismissMotionPromptAnimated();
     resetPanTipIdleClock();
