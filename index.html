@@ -419,7 +419,8 @@
   const MOTION_LOGO_ZOOM_MOBILE = 1.65; // headroom for pan without cropping the mark off-layer
   const LOGO_LAYER_BLEED = 16;       // px padding so the full SVG is drawable inside the pan layer
   const LOGO_MOTION_ANCHOR_Y = 168.5 / 287; // viewBox Y below the STUDIO/SIGNAL row gap (not geometric centre)
-  const POINTER_EASE_MOTION = 0.2;   // how quickly the beam follows tilt
+  const PAN_TARGET_EASE = 0.22;      // filters noisy tilt/touch into pan target (keeps range/sensitivity)
+  const POINTER_EASE_MOTION = 0.17;  // how quickly the panned logo catches the target
   const PAN_TIP_IDLE_MS = 4000;
   const PAN_TIP_MOVE_THRESHOLD = 18; // px — max logo pan from centre in the idle window
   const PAN_TIP_COPY = {
@@ -474,6 +475,8 @@
   let latestOrientationBeta = null;
   let prevRenderX = null;
   let prevRenderY = null;
+  let logoPanRawTargetX = 0;
+  let logoPanRawTargetY = 0;
   let logoPanTargetX = 0;
   let logoPanTargetY = 0;
   let logoPanCurrentX = 0;
@@ -600,6 +603,8 @@
 
     // ease the glow position toward the pointer for a gentle trailing feel
     if (logoPanMode) {
+      logoPanTargetX += (logoPanRawTargetX - logoPanTargetX) * PAN_TARGET_EASE;
+      logoPanTargetY += (logoPanRawTargetY - logoPanTargetY) * PAN_TARGET_EASE;
       logoPanCurrentX += (logoPanTargetX - logoPanCurrentX) * pointerEase;
       logoPanCurrentY += (logoPanTargetY - logoPanCurrentY) * pointerEase;
       currentX = centerX;
@@ -943,6 +948,8 @@
     targetY = centerY;
     currentX = centerX;
     currentY = centerY;
+    logoPanRawTargetX = 0;
+    logoPanRawTargetY = 0;
     logoPanTargetX = 0;
     logoPanTargetY = 0;
     logoPanCurrentX = 0;
@@ -966,20 +973,16 @@
   }
 
   function holdSpotlightAtCenter() {
+    logoPanRawTargetX = 0;
+    logoPanRawTargetY = 0;
     logoPanTargetX = 0;
     logoPanTargetY = 0;
     updateTarget(centerX, centerY, { trackSpeed: false });
   }
 
-  function updateLogoPan(panX, panY, opts) {
-    const trackSpeed = !opts || opts.trackSpeed !== false;
-    if (trackSpeed) {
-      const dx = panX - logoPanTargetX;
-      const dy = panY - logoPanTargetY;
-      moveSpeed = Math.max(moveSpeed, Math.hypot(dx, dy));
-    }
-    logoPanTargetX = panX;
-    logoPanTargetY = panY;
+  function updateLogoPan(panX, panY) {
+    logoPanRawTargetX = panX;
+    logoPanRawTargetY = panY;
     targetX = centerX;
     targetY = centerY;
     pointerActive = true;
